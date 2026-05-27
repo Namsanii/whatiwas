@@ -43,6 +43,8 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null)
+  const [detailItem, setDetailItem] = useState<Item | null>(null)
   const photoFileInputRef = useRef<HTMLInputElement>(null)
 
   const allYears = [...new Set([
@@ -101,6 +103,7 @@ export default function Home() {
   const deleteItem = async (id: string) => {
     await supabase.from('items').delete().eq('id', id)
     setItems(prev => prev.filter(i => i.id !== id))
+    setDetailItem(null)
   }
 
   const deletePhoto = async (id: string) => {
@@ -111,6 +114,7 @@ export default function Home() {
   const saveMemo = async (id: string) => {
     await supabase.from('items').update({ memo: editingMemo }).eq('id', id)
     setItems(prev => prev.map(i => i.id === id ? { ...i, memo: editingMemo } : i))
+    if (detailItem?.id === id) setDetailItem(prev => prev ? { ...prev, memo: editingMemo } : null)
     setEditingId(null)
   }
 
@@ -185,10 +189,10 @@ export default function Home() {
             {photos.filter(p => Number(p.year) === y).length > 0 && (
               <div className="flex gap-2 mb-8 flex-wrap">
                 {photos.filter(p => Number(p.year) === y).map(photo => (
-                  <div key={photo.id} className="relative group w-24 h-24 rounded-lg overflow-hidden">
+                  <div key={photo.id} className="relative group w-24 h-24 rounded-lg overflow-hidden cursor-pointer" onClick={() => setLightboxPhoto(photo.url)}>
                     <img src={photo.url} alt="" className="w-full h-full object-cover" />
                     <button
-                      onClick={() => deletePhoto(photo.id)}
+                      onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }}
                       className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                     >×</button>
                   </div>
@@ -202,39 +206,14 @@ export default function Home() {
                   <div className="text-xs font-medium text-[#1a1a1a] mb-3">{cat}</div>
                   <div className="space-y-2">
                     {items.filter(i => i.category === cat && Number(i.year) === y).map(item => (
-                      <div key={item.id} className="group">
+                      <div key={item.id} className="group cursor-pointer" onClick={() => setDetailItem(item)}>
                         <div className="flex gap-2 items-start">
                           {item.cover && <img src={item.cover} alt="" className="w-6 h-9 object-cover rounded flex-shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
                             <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-                            {editingId === item.id ? (
-                              <div className="mt-1">
-                                <textarea
-                                  className="w-full text-xs bg-[#f0efe9] rounded px-2 py-1 outline-none resize-none"
-                                  rows={2}
-                                  value={editingMemo}
-                                  onChange={e => setEditingMemo(e.target.value)}
-                                  autoFocus
-                                />
-                                <div className="flex gap-1 mt-1">
-                                  <button onClick={() => saveMemo(item.id)} className="text-xs bg-[#1a1a1a] text-white rounded px-2 py-0.5">Save</button>
-                                  <button onClick={() => setEditingId(null)} className="text-xs text-[#999] rounded px-2 py-0.5 border border-[#e5e5e5]">Cancel</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                {item.memo && <div className="text-xs text-[#777] italic mt-0.5">{item.memo}</div>}
-                                <button
-                                  onClick={() => { setEditingId(item.id); setEditingMemo(item.memo || '') }}
-                                  className="text-xs text-[#bbb] hover:text-[#777] opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  {item.memo ? 'edit note' : '+ note'}
-                                </button>
-                              </>
-                            )}
+                            {item.memo && <div className="text-xs text-[#777] italic mt-0.5 truncate">{item.memo}</div>}
                           </div>
-                          <button onClick={() => deleteItem(item.id)} className="text-[#ccc] hover:text-[#999] text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">×</button>
                         </div>
                       </div>
                     ))}
@@ -248,6 +227,70 @@ export default function Home() {
           </div>
         ))}
 
+        {/* 사진 라이트박스 */}
+        {lightboxPhoto && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setLightboxPhoto(null)}>
+            <img src={lightboxPhoto} alt="" className="max-w-full max-h-full object-contain rounded-lg" style={{ maxWidth: '90vw', maxHeight: '90vh' }} />
+          </div>
+        )}
+
+        {/* 콘텐츠 상세 팝업 */}
+        {detailItem && (
+          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => { setDetailItem(null); setEditingId(null) }}>
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex gap-4 items-start">
+                  {detailItem.cover && <img src={detailItem.cover} alt="" className="w-16 h-24 object-cover rounded-lg" />}
+                  <div>
+                    <div className="text-sm font-medium text-[#1a1a1a]">{detailItem.title}</div>
+                    <div className="text-xs text-[#999] mt-1">{detailItem.subtitle}</div>
+                    <div className="text-xs text-[#bbb] mt-1">{detailItem.category} · {detailItem.year}</div>
+                  </div>
+                </div>
+                <button onClick={() => { setDetailItem(null); setEditingId(null) }} className="text-[#999] text-xs">✕</button>
+              </div>
+
+              {editingId === detailItem.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none resize-none"
+                    rows={3}
+                    value={editingMemo}
+                    onChange={e => setEditingMemo(e.target.value)}
+                    autoFocus
+                    placeholder="Add a note..."
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={() => saveMemo(detailItem.id)} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Save</button>
+                    <button onClick={() => setEditingId(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {detailItem.memo ? (
+                    <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">{detailItem.memo}</div>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }}
+                      className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5] hover:bg-[#f7f6f3]"
+                    >
+                      {detailItem.memo ? 'Edit note' : '+ Add note'}
+                    </button>
+                    <button
+                      onClick={() => deleteItem(detailItem.id)}
+                      className="text-xs text-[#ccc] hover:text-red-400 rounded-lg py-2 px-3 border border-[#e5e5e5]"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 콘텐츠 추가 모달 */}
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
@@ -301,6 +344,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* 사진 추가 모달 */}
         {showPhotoForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowPhotoForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
