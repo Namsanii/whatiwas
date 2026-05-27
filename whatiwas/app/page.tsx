@@ -42,13 +42,13 @@ export default function Home() {
   const [memo, setMemo] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())
   const [photoYear, setPhotoYear] = useState(new Date().getFullYear())
-  const [photoSeason, setPhotoSeason] = useState<Season>('Spring')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoFileInputRef = useRef<HTMLInputElement>(null)
   const [pendingUpload, setPendingUpload] = useState<{year: number, season: Season} | null>(null)
+  const [pendingPhotoSeason, setPendingPhotoSeason] = useState<Season>('Spring')
 
   const allYears = [...new Set([
     ...items.map(i => Number(i.year)),
@@ -142,7 +142,7 @@ export default function Home() {
   const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    await uploadPhoto(file, photoYear, photoSeason)
+    await uploadPhoto(file, photoYear, pendingPhotoSeason)
     if (photoFileInputRef.current) photoFileInputRef.current.value = ''
   }
 
@@ -202,33 +202,32 @@ export default function Home() {
           <div key={y} className="mb-16">
             <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
 
-            <div className="grid grid-cols-4 gap-2 mb-8">
-              {seasons.map(season => {
-                const photo = getPhoto(y, season)
-                return (
-                  <div key={season}>
-                    <div
-                      className="aspect-square rounded-lg overflow-hidden bg-[#ebebeb] cursor-pointer"
-                      onClick={() => { setPendingUpload({ year: y, season }); fileInputRef.current?.click() }}
-                    >
-                      {photo ? (
-                        <div className="relative w-full h-full group">
-                          <img src={photo.url} alt={season} className="w-full h-full object-cover" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }}
-                            className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          >×</button>
-                        </div>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-xs text-[#bbb]">+</span>
+            {/* 사진 있을 때만 그리드 보여주기 */}
+            {photos.filter(p => Number(p.year) === y).length > 0 && (
+              <div className="grid grid-cols-4 gap-2 mb-8">
+                {seasons.map(season => {
+                  const photo = getPhoto(y, season)
+                  return (
+                    <div key={season}>
+                      {photo && (
+                        <div
+                          className="aspect-square rounded-lg overflow-hidden bg-[#ebebeb] cursor-pointer"
+                          onClick={() => { setPendingUpload({ year: y, season }); fileInputRef.current?.click() }}
+                        >
+                          <div className="relative w-full h-full group">
+                            <img src={photo.url} alt={season} className="w-full h-full object-cover" />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }}
+                              className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >×</button>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-6">
               {categories.map(cat => (
@@ -344,18 +343,13 @@ export default function Home() {
                 <span className="text-sm font-medium">Add Photo</span>
                 <button onClick={() => setShowPhotoForm(false)} className="text-[#999] text-xs">Cancel</button>
               </div>
-              <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="Year" value={photoYear} onChange={e => setPhotoYear(parseInt(e.target.value))} />
-              <div className="flex gap-2">
-                {seasons.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setPhotoSeason(s)}
-                    className={`flex-1 text-xs py-2 rounded-lg border transition-colors ${photoSeason === s ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <input
+                type="number"
+                className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none"
+                placeholder="Year"
+                value={photoYear}
+                onChange={e => setPhotoYear(parseInt(e.target.value))}
+              />
               <button
                 onClick={() => photoFileInputRef.current?.click()}
                 className="w-full text-sm bg-[#1a1a1a] text-white rounded-lg py-2"
