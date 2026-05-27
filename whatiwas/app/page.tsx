@@ -77,6 +77,11 @@ export default function Home() {
 
   const addItem = async () => {
     if (!selected) return
+    const count = items.filter(i => i.category === activeCategory && Number(i.year) === year).length
+    if (count >= 5) {
+      alert(`You can only add up to 5 ${activeCategory} per year.`)
+      return
+    }
     const { data } = await supabase.from('items').insert({
       title: selected.title,
       subtitle: selected.subtitle,
@@ -149,10 +154,27 @@ export default function Home() {
     <main className="min-h-screen bg-[#f7f6f3]">
       <div className="max-w-2xl mx-auto px-6 py-12">
 
-        <div className="mb-12">
+        {/* 헤더 */}
+        <div className="mb-8">
           <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
           <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
         </div>
+
+        {/* 추가 버튼 */}
+        <div className="flex gap-3 mb-8">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => { setActiveCategory(cat); setYear(new Date().getFullYear()); setShowForm(true) }}
+              className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors"
+            >
+              + {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* 구분선 */}
+        <div className="border-t border-[#e5e5e5] mb-10" />
 
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
@@ -160,16 +182,18 @@ export default function Home() {
           <div className="text-sm text-[#bbb] py-8 text-center">Start by adding a book, song, or movie.</div>
         )}
 
+        {/* 연도별 그룹 */}
         {allYears.map(y => (
           <div key={y} className="mb-16">
             <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
 
+            {/* 계절 사진 */}
             <div className="grid grid-cols-4 gap-2 mb-8">
               {seasons.map(season => {
                 const photo = getPhoto(y, season)
                 const isUploading = uploading === `${y}-${season}`
                 return (
-                  <div key={season} className="relative">
+                  <div key={season}>
                     <div
                       className="aspect-square rounded-lg overflow-hidden bg-[#ebebeb] cursor-pointer"
                       onClick={() => { setPendingUpload({ year: y, season }); fileInputRef.current?.click() }}
@@ -197,16 +221,11 @@ export default function Home() {
               })}
             </div>
 
+            {/* 카테고리별 콘텐츠 */}
             <div className="grid grid-cols-3 gap-6">
               {categories.map(cat => (
                 <div key={cat}>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-medium text-[#1a1a1a]">{cat}</span>
-                    <button
-                      onClick={() => { setActiveCategory(cat); setYear(y); setShowForm(true) }}
-                      className="text-xs text-[#bbb] hover:text-[#555]"
-                    >+</button>
-                  </div>
+                  <div className="text-xs font-medium text-[#1a1a1a] mb-3">{cat}</div>
                   <div className="space-y-2">
                     {items.filter(i => i.category === cat && Number(i.year) === y).map(item => (
                       <div key={item.id} className="group">
@@ -245,6 +264,9 @@ export default function Home() {
                         </div>
                       </div>
                     ))}
+                    {items.filter(i => i.category === cat && Number(i.year) === y).length === 0 && (
+                      <div className="text-xs text-[#ddd]">—</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -252,11 +274,12 @@ export default function Home() {
           </div>
         ))}
 
+        {/* 추가 모달 */}
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium">Add to {activeCategory} · {year}</span>
+                <span className="text-sm font-medium">Add to {activeCategory}</span>
                 <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
               </div>
 
