@@ -33,6 +33,7 @@ export default function Home() {
   const [items, setItems] = useState<Item[]>([])
   const [photos, setPhotos] = useState<SeasonPhoto[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [showPhotoForm, setShowPhotoForm] = useState(false)
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
@@ -40,10 +41,13 @@ export default function Home() {
   const [selected, setSelected] = useState<any>(null)
   const [memo, setMemo] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())
+  const [photoYear, setPhotoYear] = useState(new Date().getFullYear())
+  const [photoSeason, setPhotoSeason] = useState<Season>('Spring')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
-  const [uploading, setUploading] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const photoFileInputRef = useRef<HTMLInputElement>(null)
   const [pendingUpload, setPendingUpload] = useState<{year: number, season: Season} | null>(null)
 
   const allYears = [...new Set([
@@ -116,13 +120,13 @@ export default function Home() {
   }
 
   const uploadPhoto = async (file: File, year: number, season: Season) => {
-    setUploading(`${year}-${season}`)
+    setUploading(true)
     const path = `public/${year}/${season}.jpg`
     const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
       const url = urlData.publicUrl
-      const existing = photos.find(p => p.year === year && p.season === season)
+      const existing = photos.find(p => Number(p.year) === year && p.season === season)
       if (existing) {
         await supabase.from('season_photos').update({ url }).eq('id', existing.id)
         setPhotos(prev => prev.map(p => p.id === existing.id ? { ...p, url } : p))
@@ -131,10 +135,18 @@ export default function Home() {
         if (data) setPhotos(prev => [...prev, data[0] as SeasonPhoto])
       }
     }
-    setUploading(null)
+    setUploading(false)
+    setShowPhotoForm(false)
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadPhoto(file, photoYear, photoSeason)
+    if (photoFileInputRef.current) photoFileInputRef.current.value = ''
+  }
+
+  const handleGridPhotoClick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !pendingUpload) return
     await uploadPhoto(file, pendingUpload.year, pendingUpload.season)
@@ -154,14 +166,12 @@ export default function Home() {
     <main className="min-h-screen bg-[#f7f6f3]">
       <div className="max-w-2xl mx-auto px-6 py-12">
 
-        {/* 헤더 */}
         <div className="mb-8">
           <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
           <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
         </div>
 
-        {/* 추가 버튼 */}
-        <div className="flex gap-3 mb-8">
+        <div className="flex gap-3 mb-8 flex-wrap">
           {categories.map(cat => (
             <button
               key={cat}
@@ -171,27 +181,30 @@ export default function Home() {
               + {cat}
             </button>
           ))}
+          <button
+            onClick={() => setShowPhotoForm(true)}
+            className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors"
+          >
+            + Photo
+          </button>
         </div>
 
-        {/* 구분선 */}
         <div className="border-t border-[#e5e5e5] mb-10" />
 
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleGridPhotoClick} />
+        <input ref={photoFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFileChange} />
 
         {allYears.length === 0 && (
           <div className="text-sm text-[#bbb] py-8 text-center">Start by adding a book, song, or movie.</div>
         )}
 
-        {/* 연도별 그룹 */}
         {allYears.map(y => (
           <div key={y} className="mb-16">
             <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
 
-            {/* 계절 사진 */}
             <div className="grid grid-cols-4 gap-2 mb-8">
               {seasons.map(season => {
                 const photo = getPhoto(y, season)
-                const isUploading = uploading === `${y}-${season}`
                 return (
                   <div key={season}>
                     <div
@@ -208,11 +221,7 @@ export default function Home() {
                         </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          {isUploading ? (
-                            <span className="text-xs text-[#999]">...</span>
-                          ) : (
-                            <span className="text-xs text-[#bbb]">+</span>
-                          )}
+                          <span className="text-xs text-[#bbb]">+</span>
                         </div>
                       )}
                     </div>
@@ -221,7 +230,6 @@ export default function Home() {
               })}
             </div>
 
-            {/* 카테고리별 콘텐츠 */}
             <div className="grid grid-cols-3 gap-6">
               {categories.map(cat => (
                 <div key={cat}>
@@ -274,7 +282,7 @@ export default function Home() {
           </div>
         ))}
 
-        {/* 추가 모달 */}
+        {/* 콘텐츠 추가 모달 */}
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
@@ -282,7 +290,6 @@ export default function Home() {
                 <span className="text-sm font-medium">Add to {activeCategory}</span>
                 <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
               </div>
-
               <div className="flex gap-2">
                 <input
                   className="flex-1 text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]"
@@ -295,7 +302,6 @@ export default function Home() {
                   {searching ? '...' : 'Search'}
                 </button>
               </div>
-
               {results.length > 0 && !selected && (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {results.map((r, i) => (
@@ -309,7 +315,6 @@ export default function Home() {
                   ))}
                 </div>
               )}
-
               {selected && (
                 <div className="space-y-3">
                   <div className="flex gap-3 items-center p-2 bg-[#f7f6f3] rounded-lg">
@@ -327,6 +332,36 @@ export default function Home() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* 사진 추가 모달 */}
+        {showPhotoForm && (
+          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowPhotoForm(false)}>
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium">Add Photo</span>
+                <button onClick={() => setShowPhotoForm(false)} className="text-[#999] text-xs">Cancel</button>
+              </div>
+              <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="Year" value={photoYear} onChange={e => setPhotoYear(parseInt(e.target.value))} />
+              <div className="flex gap-2">
+                {seasons.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setPhotoSeason(s)}
+                    className={`flex-1 text-xs py-2 rounded-lg border transition-colors ${photoSeason === s ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => photoFileInputRef.current?.click()}
+                className="w-full text-sm bg-[#1a1a1a] text-white rounded-lg py-2"
+              >
+                {uploading ? 'Uploading...' : 'Choose Photo'}
+              </button>
             </div>
           </div>
         )}
