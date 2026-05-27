@@ -136,11 +136,11 @@ export default function Home() {
         ))}
 
         {showForm && (
-          <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowForm(false)}>
-            <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
+            <div className="bg-white w-full max-w-xl rounded-2xl p-6 space-y-3mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium">Add to {activeCategory}</span>
-                <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
+                <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button
               </div>
 
               <div className="flex gap-2">
