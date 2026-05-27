@@ -108,7 +108,7 @@ export default function Home() {
   const uploadPhoto = async (file: File, year: number, season: Season) => {
     setUploading(`${year}-${season}`)
     const ext = file.name.split('.').pop()
-    const path = `${year}/${season}.${ext}`
+const path = `${year}/${season}.jpg`
     const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
@@ -184,7 +184,6 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    <div className="text-xs text-[#bbb] mt-1 text-center">{season}</div>
                   </div>
                 )
               })}
