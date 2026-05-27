@@ -47,8 +47,8 @@ export default function Home() {
   const [pendingUpload, setPendingUpload] = useState<{year: number, season: Season} | null>(null)
 
   const allYears = [...new Set([
-    ...items.map(i => i.year),
-    ...photos.map(p => p.year)
+    ...items.map(i => Number(i.year)),
+    ...photos.map(p => Number(p.year))
   ])].sort((a, b) => b - a)
 
   useEffect(() => { fetchItems(); fetchPhotos() }, [])
