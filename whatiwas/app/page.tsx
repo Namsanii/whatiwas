@@ -9,8 +9,6 @@ const supabase = createClient(
 
 const categories = ['Books', 'Music', 'Movies'] as const
 type Category = typeof categories[number]
-const seasons = ['Spring', 'Summer', 'Fall', 'Winter'] as const
-type Season = typeof seasons[number]
 
 type Item = {
   id: string
@@ -25,7 +23,7 @@ type Item = {
 type SeasonPhoto = {
   id: string
   year: number
-  season: Season
+  season: string
   url: string
 }
 
@@ -45,10 +43,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
   const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const photoFileInputRef = useRef<HTMLInputElement>(null)
-  const [pendingUpload, setPendingUpload] = useState<{year: number, season: Season} | null>(null)
-  const [pendingPhotoSeason, setPendingPhotoSeason] = useState<Season>('Spring')
 
   const allYears = [...new Set([
     ...items.map(i => Number(i.year)),
@@ -63,7 +58,7 @@ export default function Home() {
   }
 
   const fetchPhotos = async () => {
-    const { data } = await supabase.from('season_photos').select('*')
+    const { data } = await supabase.from('season_photos').select('*').order('id', { ascending: true })
     if (data) setPhotos(data as SeasonPhoto[])
   }
 
@@ -119,39 +114,27 @@ export default function Home() {
     setEditingId(null)
   }
 
-  const uploadPhoto = async (file: File, year: number, season: Season) => {
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const yearPhotos = photos.filter(p => Number(p.year) === photoYear)
+    if (yearPhotos.length >= 5) {
+      alert('You can only add up to 5 photos per year.')
+      return
+    }
     setUploading(true)
-    const path = `public/${year}/${season}.jpg`
+    const slot = yearPhotos.length + 1
+    const path = `public/${photoYear}/photo_${slot}.jpg`
     const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
       const url = urlData.publicUrl
-      const existing = photos.find(p => Number(p.year) === year && p.season === season)
-      if (existing) {
-        await supabase.from('season_photos').update({ url }).eq('id', existing.id)
-        setPhotos(prev => prev.map(p => p.id === existing.id ? { ...p, url } : p))
-      } else {
-        const { data } = await supabase.from('season_photos').insert({ year, season, url }).select()
-        if (data) setPhotos(prev => [...prev, data[0] as SeasonPhoto])
-      }
+      const { data } = await supabase.from('season_photos').insert({ year: photoYear, season: `photo_${slot}`, url }).select()
+      if (data) setPhotos(prev => [...prev, data[0] as SeasonPhoto])
     }
     setUploading(false)
     setShowPhotoForm(false)
-  }
-
-  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    await uploadPhoto(file, photoYear, pendingPhotoSeason)
     if (photoFileInputRef.current) photoFileInputRef.current.value = ''
-  }
-
-  const handleGridPhotoClick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !pendingUpload) return
-    await uploadPhoto(file, pendingUpload.year, pendingUpload.season)
-    setPendingUpload(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const getPlaceholder = (cat: Category) => {
@@ -159,8 +142,6 @@ export default function Home() {
     if (cat === 'Music') return 'Year you listened to it'
     return 'Year you watched it'
   }
-
-  const getPhoto = (year: number, season: Season) => photos.find(p => Number(p.year) === year && p.season === season)
 
   return (
     <main className="min-h-screen bg-[#f7f6f3]">
@@ -191,7 +172,6 @@ export default function Home() {
 
         <div className="border-t border-[#e5e5e5] mb-10" />
 
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleGridPhotoClick} />
         <input ref={photoFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFileChange} />
 
         {allYears.length === 0 && (
@@ -202,30 +182,17 @@ export default function Home() {
           <div key={y} className="mb-16">
             <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
 
-            {/* 사진 있을 때만 그리드 보여주기 */}
             {photos.filter(p => Number(p.year) === y).length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mb-8">
-                {seasons.map(season => {
-                  const photo = getPhoto(y, season)
-                  return (
-                    <div key={season}>
-                      {photo && (
-                        <div
-                          className="aspect-square rounded-lg overflow-hidden bg-[#ebebeb] cursor-pointer"
-                          onClick={() => { setPendingUpload({ year: y, season }); fileInputRef.current?.click() }}
-                        >
-                          <div className="relative w-full h-full group">
-                            <img src={photo.url} alt={season} className="w-full h-full object-cover" />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }}
-                              className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            >×</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+              <div className="flex gap-2 mb-8 flex-wrap">
+                {photos.filter(p => Number(p.year) === y).map(photo => (
+                  <div key={photo.id} className="relative group w-24 h-24 rounded-lg overflow-hidden">
+                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => deletePhoto(photo.id)}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >×</button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -281,7 +248,6 @@ export default function Home() {
           </div>
         ))}
 
-        {/* 콘텐츠 추가 모달 */}
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
@@ -335,7 +301,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 사진 추가 모달 */}
         {showPhotoForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowPhotoForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
