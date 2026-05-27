@@ -43,7 +43,8 @@ export default function Home() {
     setSearching(true)
     setResults([])
     setSelected(null)
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=book`)
+    const endpoint = activeCategory === 'Music' ? '/api/search-music' : '/api/search'
+    const res = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`)
     const data = await res.json()
     setResults(data.items || [])
     setSearching(false)
@@ -76,6 +77,12 @@ export default function Home() {
   const getYears = (cat: Category) => {
     const filtered = items.filter(i => i.category === cat)
     return [...new Set(filtered.map(i => i.year))].sort((a, b) => b - a)
+  }
+
+  const getPlaceholder = (cat: Category) => {
+    if (cat === 'Books') return 'Year you read it'
+    if (cat === 'Music') return 'Year you listened to it'
+    return 'Year you watched it'
   }
 
   return (
@@ -172,7 +179,7 @@ export default function Home() {
                       <div className="text-xs text-[#999]">{selected.subtitle}</div>
                     </div>
                   </div>
-                  <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="Year you read it" value={year} onChange={e => setYear(parseInt(e.target.value))} />
+                  <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder={getPlaceholder(activeCategory)} value={year} onChange={e => setYear(parseInt(e.target.value))} />
                   <input className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Notes (optional)" value={memo} onChange={e => setMemo(e.target.value)} />
                   <div className="flex gap-2">
                     <button onClick={addItem} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Add</button>
