@@ -46,16 +46,17 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingUpload, setPendingUpload] = useState<{year: number, season: Season} | null>(null)
 
-const allYears = [...new Set([
-    ...items.map(i => i.year),
-    ...photos.map(p => p.year)
+  const allYears = [...new Set([
+    ...items.map(i => Number(i.year)),
+    ...photos.map(p => Number(p.year))
   ])].sort((a, b) => b - a)
 
   useEffect(() => { fetchItems(); fetchPhotos() }, [])
 
   const fetchItems = async () => {
     const { data } = await supabase.from('items').select('*').order('year', { ascending: false })
-if (data) setItems(data.map((i: any) => ({ ...i, year: parseInt(i.year) })) as Item[])  }
+    if (data) setItems(data.map((i: any) => ({ ...i, year: parseInt(i.year) })) as Item[])
+  }
 
   const fetchPhotos = async () => {
     const { data } = await supabase.from('season_photos').select('*')
@@ -84,7 +85,7 @@ if (data) setItems(data.map((i: any) => ({ ...i, year: parseInt(i.year) })) as I
       category: activeCategory,
       memo,
     }).select()
-    if (data) setItems(prev => [...prev, data[0] as Item])
+    if (data) setItems(prev => [...prev, { ...data[0], year: parseInt(data[0].year) } as Item])
     setShowForm(false)
     setQuery('')
     setResults([])
@@ -98,6 +99,11 @@ if (data) setItems(data.map((i: any) => ({ ...i, year: parseInt(i.year) })) as I
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
+  const deletePhoto = async (id: string) => {
+    await supabase.from('season_photos').delete().eq('id', id)
+    setPhotos(prev => prev.filter(p => p.id !== id))
+  }
+
   const saveMemo = async (id: string) => {
     await supabase.from('items').update({ memo: editingMemo }).eq('id', id)
     setItems(prev => prev.map(i => i.id === id ? { ...i, memo: editingMemo } : i))
@@ -106,8 +112,7 @@ if (data) setItems(data.map((i: any) => ({ ...i, year: parseInt(i.year) })) as I
 
   const uploadPhoto = async (file: File, year: number, season: Season) => {
     setUploading(`${year}-${season}`)
-    const ext = file.name.split('.').pop()
-const path = `public/${year}/${season}.jpg`
+    const path = `public/${year}/${season}.jpg`
     const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
@@ -132,18 +137,13 @@ const path = `public/${year}/${season}.jpg`
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const getYears = (cat: Category) => {
-    const filtered = items.filter(i => i.category === cat)
-    return [...new Set(filtered.map(i => i.year))].sort((a, b) => b - a)
-  }
-
   const getPlaceholder = (cat: Category) => {
     if (cat === 'Books') return 'Year you read it'
     if (cat === 'Music') return 'Year you listened to it'
     return 'Year you watched it'
   }
 
-  const getPhoto = (year: number, season: Season) => photos.find(p => p.year === year && p.season === season)
+  const getPhoto = (year: number, season: Season) => photos.find(p => Number(p.year) === year && p.season === season)
 
   return (
     <main className="min-h-screen bg-[#f7f6f3]">
@@ -156,11 +156,14 @@ const path = `public/${year}/${season}.jpg`
 
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
+        {allYears.length === 0 && (
+          <div className="text-sm text-[#bbb] py-8 text-center">Start by adding a book, song, or movie.</div>
+        )}
+
         {allYears.map(y => (
           <div key={y} className="mb-16">
             <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
 
-            {/* 계절 사진 */}
             <div className="grid grid-cols-4 gap-2 mb-8">
               {seasons.map(season => {
                 const photo = getPhoto(y, season)
@@ -172,7 +175,13 @@ const path = `public/${year}/${season}.jpg`
                       onClick={() => { setPendingUpload({ year: y, season }); fileInputRef.current?.click() }}
                     >
                       {photo ? (
-                        <img src={photo.url} alt={season} className="w-full h-full object-cover" />
+                        <div className="relative w-full h-full group">
+                          <img src={photo.url} alt={season} className="w-full h-full object-cover" />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }}
+                            className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          >×</button>
+                        </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           {isUploading ? (
@@ -188,7 +197,6 @@ const path = `public/${year}/${season}.jpg`
               })}
             </div>
 
-            {/* 카테고리별 항목 */}
             <div className="grid grid-cols-3 gap-6">
               {categories.map(cat => (
                 <div key={cat}>
@@ -200,7 +208,7 @@ const path = `public/${year}/${season}.jpg`
                     >+</button>
                   </div>
                   <div className="space-y-2">
-                    {items.filter(i => i.category === cat && i.year === y).map(item => (
+                    {items.filter(i => i.category === cat && Number(i.year) === y).map(item => (
                       <div key={item.id} className="group">
                         <div className="flex gap-2 items-start">
                           {item.cover && <img src={item.cover} alt="" className="w-6 h-9 object-cover rounded flex-shrink-0" />}
@@ -243,10 +251,6 @@ const path = `public/${year}/${season}.jpg`
             </div>
           </div>
         ))}
-
-        {allYears.length === 0 && (
-          <div className="text-sm text-[#bbb] py-8 text-center">Start by adding a book, song, or movie.</div>
-        )}
 
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
