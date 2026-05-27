@@ -140,7 +140,7 @@ export default function Home() {
             <div className="bg-white w-full max-w-xl rounded-2xl p-6 space-y-3mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium">Add to {activeCategory}</span>
-                <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button
+                <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
               </div>
 
               <div className="flex gap-2">
