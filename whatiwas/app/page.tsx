@@ -30,6 +30,8 @@ export default function Home() {
   const [selected, setSelected] = useState<any>(null)
   const [memo, setMemo] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingMemo, setEditingMemo] = useState('')
 
   useEffect(() => { fetchItems() }, [])
 
@@ -74,6 +76,12 @@ export default function Home() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
+  const saveMemo = async (id: string) => {
+    await supabase.from('items').update({ memo: editingMemo }).eq('id', id)
+    setItems(prev => prev.map(i => i.id === id ? { ...i, memo: editingMemo } : i))
+    setEditingId(null)
+  }
+
   const getYears = (cat: Category) => {
     const filtered = items.filter(i => i.category === cat)
     return [...new Set(filtered.map(i => i.year))].sort((a, b) => b - a)
@@ -115,16 +123,44 @@ export default function Home() {
                     <div className="text-xs text-[#bbb] font-medium mb-2">{y}</div>
                     <div className="space-y-2">
                       {items.filter(i => i.category === cat && i.year === y).map(item => (
-                        <div key={item.id} className="flex justify-between items-start py-2 border-b border-[#ebebeb]">
-                          <div className="flex gap-3 items-start">
-                            {item.cover && <img src={item.cover} alt="" className="w-8 h-11 object-cover rounded" />}
-                            <div>
-                              <div className="text-sm font-medium text-[#1a1a1a]">{item.title}</div>
-                              <div className="text-xs text-[#999] mt-0.5">{item.subtitle}</div>
-                              {item.memo && <div className="text-xs text-[#777] mt-1 italic">{item.memo}</div>}
+                        <div key={item.id} className="py-2 border-b border-[#ebebeb]">
+                          <div className="flex justify-between items-start">
+                            <div className="flex gap-3 items-start">
+                              {item.cover && <img src={item.cover} alt="" className="w-8 h-11 object-cover rounded" />}
+                              <div>
+                                <div className="text-sm font-medium text-[#1a1a1a]">{item.title}</div>
+                                <div className="text-xs text-[#999] mt-0.5">{item.subtitle}</div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 items-center ml-4">
+                              <button
+                                onClick={() => { setEditingId(item.id); setEditingMemo(item.memo || '') }}
+                                className="text-[#bbb] hover:text-[#777] text-xs"
+                              >
+                                {item.memo ? 'edit' : '+ note'}
+                              </button>
+                              <button onClick={() => deleteItem(item.id)} className="text-[#ccc] hover:text-[#999] text-xs">×</button>
                             </div>
                           </div>
-                          <button onClick={() => deleteItem(item.id)} className="text-[#ccc] hover:text-[#999] text-xs ml-4 mt-0.5">×</button>
+
+                          {editingId === item.id ? (
+                            <div className="mt-2 flex gap-2">
+                              <textarea
+                                className="flex-1 text-xs bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none resize-none"
+                                rows={2}
+                                value={editingMemo}
+                                onChange={e => setEditingMemo(e.target.value)}
+                                autoFocus
+                                placeholder="Add a note..."
+                              />
+                              <div className="flex flex-col gap-1">
+                                <button onClick={() => saveMemo(item.id)} className="text-xs bg-[#1a1a1a] text-white rounded-lg px-3 py-1">Save</button>
+                                <button onClick={() => setEditingId(null)} className="text-xs text-[#999] rounded-lg px-3 py-1 border border-[#e5e5e5]">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            item.memo && <div className="text-xs text-[#777] mt-1 italic ml-11">{item.memo}</div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -137,7 +173,7 @@ export default function Home() {
 
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-            <div className="bg-white w-full max-w-xl rounded-2xl p-6 space-y-3mx-4" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-xl rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium">Add to {activeCategory}</span>
                 <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
