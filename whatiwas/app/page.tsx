@@ -7,7 +7,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const categories = ['책', '음악', '영화'] as const
+const categories = ['Books', 'Music', 'Movies'] as const
 type Category = typeof categories[number]
 
 type Item = {
@@ -22,7 +22,7 @@ type Item = {
 
 export default function Home() {
   const [items, setItems] = useState<Item[]>([])
-  const [activeCategory, setActiveCategory] = useState<Category>('책')
+  const [activeCategory, setActiveCategory] = useState<Category>('Books')
   const [showForm, setShowForm] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
@@ -126,7 +126,7 @@ export default function Home() {
             </div>
           ))}
           {years.length === 0 && (
-            <div className="text-sm text-[#bbb] py-8 text-center">아직 기록이 없어요</div>
+            <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
           )}
         </div>
 
@@ -135,20 +135,20 @@ export default function Home() {
             <div className="flex gap-2">
               <input
                 className="flex-1 text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]"
-                placeholder="검색어 입력..."
+                placeholder="Search..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && search()}
               />
               <button onClick={search} className="text-sm bg-[#1a1a1a] text-white rounded-lg px-4 py-2">
-                {searching ? '...' : '검색'}
+                {searching ? '...' : 'Search'}
               </button>
             </div>
 
             {results.length > 0 && !selected && (
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {results.map((r, i) => (
-                  <div key={i} onClick={() => { setSelected(r); setYear(r.year) }} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
+                  <div key={i} onClick={() => { setSelected(r); setYear(new Date().getFullYear()) }} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
                     {r.cover && <img src={r.cover} alt="" className="w-8 h-11 object-cover rounded" />}
                     <div>
                       <div className="text-sm font-medium text-[#1a1a1a]">{r.title}</div>
@@ -168,21 +168,21 @@ export default function Home() {
                     <div className="text-xs text-[#999]">{selected.subtitle}</div>
                   </div>
                 </div>
-                <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="연도" value={year} onChange={e => setYear(parseInt(e.target.value))} />
-                <input className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="메모 (선택)" value={memo} onChange={e => setMemo(e.target.value)} />
+                <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="Year you read it" value={year} onChange={e => setYear(parseInt(e.target.value))} />
+                <input className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Notes (optional)" value={memo} onChange={e => setMemo(e.target.value)} />
                 <div className="flex gap-2">
-                  <button onClick={addItem} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">추가</button>
-                  <button onClick={() => setSelected(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">다시 검색</button>
+                  <button onClick={addItem} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Add</button>
+                  <button onClick={() => setSelected(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">Search again</button>
                 </div>
               </div>
             )}
-            <button onClick={() => setShowForm(false)} className="w-full text-xs text-[#bbb] pt-1">취소</button>
+            <button onClick={() => setShowForm(false)} className="w-full text-xs text-[#bbb] pt-1">Cancel</button>
           </div>
         )}
 
         {!showForm && (
           <button onClick={() => setShowForm(true)} className="mt-8 w-full text-sm text-[#999] py-3 border border-dashed border-[#ddd] rounded-xl hover:border-[#bbb] hover:text-[#777] transition-colors">
-            + 추가하기
+            + Add
           </button>
         )}
       </div>
