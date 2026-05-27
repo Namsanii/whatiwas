@@ -43,7 +43,7 @@ export default function Home() {
     setSearching(true)
     setResults([])
     setSelected(null)
-    const endpoint = activeCategory === 'Music' ? '/api/search-music' : '/api/search'
+    const endpoint = activeCategory === 'Music' ? '/api/search-music' : activeCategory === 'Movies' ? '/api/search-movie' : '/api/search'
     const res = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`)
     const data = await res.json()
     setResults(data.items || [])
