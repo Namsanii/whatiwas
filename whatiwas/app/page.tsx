@@ -55,8 +55,7 @@ const allYears = [...new Set([
 
   const fetchItems = async () => {
     const { data } = await supabase.from('items').select('*').order('year', { ascending: false })
-    if (data) setItems(data as Item[])
-  }
+if (data) setItems(data.map((i: any) => ({ ...i, year: parseInt(i.year) })) as Item[])  }
 
   const fetchPhotos = async () => {
     const { data } = await supabase.from('season_photos').select('*')
