@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -9,6 +9,8 @@ const supabase = createClient(
 
 const categories = ['Books', 'Music', 'Movies'] as const
 type Category = typeof categories[number]
+const seasons = ['Spring', 'Summer', 'Fall', 'Winter'] as const
+type Season = typeof seasons[number]
 
 type Item = {
   id: string
@@ -20,8 +22,16 @@ type Item = {
   memo: string
 }
 
+type SeasonPhoto = {
+  id: string
+  year: number
+  season: Season
+  url: string
+}
+
 export default function Home() {
   const [items, setItems] = useState<Item[]>([])
+  const [photos, setPhotos] = useState<SeasonPhoto[]>([])
   const [showForm, setShowForm] = useState(false)
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
   const [query, setQuery] = useState('')
@@ -32,12 +42,25 @@ export default function Home() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
+  const [uploading, setUploading] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pendingUpload, setPendingUpload] = useState<{year: number, season: Season} | null>(null)
 
-  useEffect(() => { fetchItems() }, [])
+  const allYears = [...new Set([
+    ...items.map(i => i.year),
+    ...photos.map(p => p.year)
+  ])].sort((a, b) => b - a)
+
+  useEffect(() => { fetchItems(); fetchPhotos() }, [])
 
   const fetchItems = async () => {
     const { data } = await supabase.from('items').select('*').order('year', { ascending: false })
     if (data) setItems(data as Item[])
+  }
+
+  const fetchPhotos = async () => {
+    const { data } = await supabase.from('season_photos').select('*')
+    if (data) setPhotos(data as SeasonPhoto[])
   }
 
   const search = async () => {
@@ -82,6 +105,34 @@ export default function Home() {
     setEditingId(null)
   }
 
+  const uploadPhoto = async (file: File, year: number, season: Season) => {
+    setUploading(`${year}-${season}`)
+    const ext = file.name.split('.').pop()
+    const path = `${year}/${season}.${ext}`
+    const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
+    if (!error) {
+      const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
+      const url = urlData.publicUrl
+      const existing = photos.find(p => p.year === year && p.season === season)
+      if (existing) {
+        await supabase.from('season_photos').update({ url }).eq('id', existing.id)
+        setPhotos(prev => prev.map(p => p.id === existing.id ? { ...p, url } : p))
+      } else {
+        const { data } = await supabase.from('season_photos').insert({ year, season, url }).select()
+        if (data) setPhotos(prev => [...prev, data[0] as SeasonPhoto])
+      }
+    }
+    setUploading(null)
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !pendingUpload) return
+    await uploadPhoto(file, pendingUpload.year, pendingUpload.season)
+    setPendingUpload(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const getYears = (cat: Category) => {
     const filtered = items.filter(i => i.category === cat)
     return [...new Set(filtered.map(i => i.year))].sort((a, b) => b - a)
@@ -93,89 +144,117 @@ export default function Home() {
     return 'Year you watched it'
   }
 
+  const getPhoto = (year: number, season: Season) => photos.find(p => p.year === year && p.season === season)
+
   return (
     <main className="min-h-screen bg-[#f7f6f3]">
-      <div className="max-w-xl mx-auto px-6 py-12">
+      <div className="max-w-2xl mx-auto px-6 py-12">
 
         <div className="mb-12">
           <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
           <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
         </div>
 
-        {categories.map(cat => (
-          <div key={cat} className="mb-12">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-sm font-medium text-[#1a1a1a]">{cat}</h2>
-              <button
-                onClick={() => { setActiveCategory(cat); setShowForm(true) }}
-                className="text-xs text-[#999] hover:text-[#555] transition-colors"
-              >
-                + Add
-              </button>
-            </div>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-            {getYears(cat).length === 0 ? (
-              <div className="text-sm text-[#bbb] py-4">No entries yet.</div>
-            ) : (
-              <div className="space-y-6">
-                {getYears(cat).map(y => (
-                  <div key={y}>
-                    <div className="text-xs text-[#bbb] font-medium mb-2">{y}</div>
-                    <div className="space-y-2">
-                      {items.filter(i => i.category === cat && i.year === y).map(item => (
-                        <div key={item.id} className="py-2 border-b border-[#ebebeb]">
-                          <div className="flex justify-between items-start">
-                            <div className="flex gap-3 items-start">
-                              {item.cover && <img src={item.cover} alt="" className="w-8 h-11 object-cover rounded" />}
-                              <div>
-                                <div className="text-sm font-medium text-[#1a1a1a]">{item.title}</div>
-                                <div className="text-xs text-[#999] mt-0.5">{item.subtitle}</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 items-center ml-4">
-                              <button
-                                onClick={() => { setEditingId(item.id); setEditingMemo(item.memo || '') }}
-                                className="text-[#bbb] hover:text-[#777] text-xs"
-                              >
-                                {item.memo ? 'edit' : '+ note'}
-                              </button>
-                              <button onClick={() => deleteItem(item.id)} className="text-[#ccc] hover:text-[#999] text-xs">×</button>
-                            </div>
-                          </div>
+        {allYears.map(y => (
+          <div key={y} className="mb-16">
+            <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
 
-                          {editingId === item.id ? (
-                            <div className="mt-2 flex gap-2">
-                              <textarea
-                                className="flex-1 text-xs bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none resize-none"
-                                rows={2}
-                                value={editingMemo}
-                                onChange={e => setEditingMemo(e.target.value)}
-                                autoFocus
-                                placeholder="Add a note..."
-                              />
-                              <div className="flex flex-col gap-1">
-                                <button onClick={() => saveMemo(item.id)} className="text-xs bg-[#1a1a1a] text-white rounded-lg px-3 py-1">Save</button>
-                                <button onClick={() => setEditingId(null)} className="text-xs text-[#999] rounded-lg px-3 py-1 border border-[#e5e5e5]">Cancel</button>
-                              </div>
-                            </div>
+            {/* 계절 사진 */}
+            <div className="grid grid-cols-4 gap-2 mb-8">
+              {seasons.map(season => {
+                const photo = getPhoto(y, season)
+                const isUploading = uploading === `${y}-${season}`
+                return (
+                  <div key={season} className="relative">
+                    <div
+                      className="aspect-square rounded-lg overflow-hidden bg-[#ebebeb] cursor-pointer"
+                      onClick={() => { setPendingUpload({ year: y, season }); fileInputRef.current?.click() }}
+                    >
+                      {photo ? (
+                        <img src={photo.url} alt={season} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          {isUploading ? (
+                            <span className="text-xs text-[#999]">...</span>
                           ) : (
-                            item.memo && <div className="text-xs text-[#777] mt-1 italic ml-11">{item.memo}</div>
+                            <span className="text-xs text-[#bbb]">+</span>
                           )}
                         </div>
-                      ))}
+                      )}
                     </div>
+                    <div className="text-xs text-[#bbb] mt-1 text-center">{season}</div>
                   </div>
-                ))}
-              </div>
-            )}
+                )
+              })}
+            </div>
+
+            {/* 카테고리별 항목 */}
+            <div className="grid grid-cols-3 gap-6">
+              {categories.map(cat => (
+                <div key={cat}>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-medium text-[#1a1a1a]">{cat}</span>
+                    <button
+                      onClick={() => { setActiveCategory(cat); setYear(y); setShowForm(true) }}
+                      className="text-xs text-[#bbb] hover:text-[#555]"
+                    >+</button>
+                  </div>
+                  <div className="space-y-2">
+                    {items.filter(i => i.category === cat && i.year === y).map(item => (
+                      <div key={item.id} className="group">
+                        <div className="flex gap-2 items-start">
+                          {item.cover && <img src={item.cover} alt="" className="w-6 h-9 object-cover rounded flex-shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
+                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+                            {editingId === item.id ? (
+                              <div className="mt-1">
+                                <textarea
+                                  className="w-full text-xs bg-[#f0efe9] rounded px-2 py-1 outline-none resize-none"
+                                  rows={2}
+                                  value={editingMemo}
+                                  onChange={e => setEditingMemo(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className="flex gap-1 mt-1">
+                                  <button onClick={() => saveMemo(item.id)} className="text-xs bg-[#1a1a1a] text-white rounded px-2 py-0.5">Save</button>
+                                  <button onClick={() => setEditingId(null)} className="text-xs text-[#999] rounded px-2 py-0.5 border border-[#e5e5e5]">Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {item.memo && <div className="text-xs text-[#777] italic mt-0.5">{item.memo}</div>}
+                                <button
+                                  onClick={() => { setEditingId(item.id); setEditingMemo(item.memo || '') }}
+                                  className="text-xs text-[#bbb] hover:text-[#777] opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  {item.memo ? 'edit note' : '+ note'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          <button onClick={() => deleteItem(item.id)} className="text-[#ccc] hover:text-[#999] text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">×</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
 
+        {allYears.length === 0 && (
+          <div className="text-sm text-[#bbb] py-8 text-center">Start by adding a book, song, or movie.</div>
+        )}
+
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-            <div className="bg-white w-full max-w-xl rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium">Add to {activeCategory}</span>
+                <span className="text-sm font-medium">Add to {activeCategory} · {year}</span>
                 <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
               </div>
 
@@ -195,7 +274,7 @@ export default function Home() {
               {results.length > 0 && !selected && (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {results.map((r, i) => (
-                    <div key={i} onClick={() => { setSelected(r); setYear(new Date().getFullYear()) }} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
+                    <div key={i} onClick={() => setSelected(r)} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
                       {r.cover && <img src={r.cover} alt="" className="w-8 h-11 object-cover rounded" />}
                       <div>
                         <div className="text-sm font-medium text-[#1a1a1a]">{r.title}</div>
