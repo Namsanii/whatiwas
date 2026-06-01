@@ -149,8 +149,8 @@ export default function Home() {
     }
     setUploading(true)
     const slot = yearPhotos.length + 1
-    const path = `public/${session.user.id}/${photoYear}/photo_${slot}.jpg`
-    const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
+const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+const path = `public/${session.user.id}/${photoYear}/photo_${slot}.${ext}`    const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
       const url = urlData.publicUrl
