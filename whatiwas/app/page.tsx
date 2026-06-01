@@ -175,7 +175,7 @@ export default function Home() {
       <div className="bg-white rounded-2xl p-8 w-full max-w-sm mx-4 shadow-sm">
         <h1 className="text-xl font-medium text-[#1a1a1a] mb-1">whatiwas</h1>
         <p className="text-xs text-[#999] mb-6">A personal archive of taste across the years.</p>
-        <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} providers={['google']} onlyThirdPartyProviders />
+<Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} providers={['google']} onlyThirdPartyProviders providerScopes={{ google: 'email profile' }} queryParams={{ access_type: 'offline', prompt: 'select_account' }} />
       </div>
     </div>
   )
