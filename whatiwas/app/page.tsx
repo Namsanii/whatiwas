@@ -38,6 +38,7 @@ export default function Home() {
   const [photos, setPhotos] = useState<SeasonPhoto[]>([])
   const [showForm, setShowForm] = useState(false)
   const [showPhotoForm, setShowPhotoForm] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
@@ -174,47 +175,27 @@ export default function Home() {
       <div className="bg-white rounded-2xl p-8 w-full max-w-sm mx-4 shadow-sm">
         <h1 className="text-xl font-medium text-[#1a1a1a] mb-1">whatiwas</h1>
         <p className="text-xs text-[#999] mb-6">A personal archive of taste across the years.</p>
-        <Auth
-          supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
-          providers={['google']}
-          onlyThirdPartyProviders
-        />
+        <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} providers={['google']} onlyThirdPartyProviders />
       </div>
     </div>
   )
 
   return (
-    <main className="min-h-screen bg-[#f7f6f3]">
+    <main className="min-h-screen bg-[#f7f6f3] pb-20">
       <div className="max-w-2xl mx-auto px-6 py-12">
 
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
-            <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
-          </div>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="text-xs text-[#bbb] hover:text-[#999]"
-          >
-            Sign out
-          </button>
+        <div className="mb-8">
+          <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
+          <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
         </div>
 
         <div className="flex gap-3 mb-8 flex-wrap">
           {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => { setActiveCategory(cat); setYear(new Date().getFullYear()); setShowForm(true) }}
-              className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors"
-            >
+            <button key={cat} onClick={() => { setActiveCategory(cat); setYear(new Date().getFullYear()); setShowForm(true) }} className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors">
               + {cat}
             </button>
           ))}
-          <button
-            onClick={() => setShowPhotoForm(true)}
-            className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors"
-          >
+          <button onClick={() => setShowPhotoForm(true)} className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors">
             + Photo
           </button>
         </div>
@@ -230,21 +211,16 @@ export default function Home() {
         {allYears.map(y => (
           <div key={y} className="mb-16">
             <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
-
             {photos.filter(p => Number(p.year) === y).length > 0 && (
               <div className="flex gap-2 mb-8 flex-wrap">
                 {photos.filter(p => Number(p.year) === y).map(photo => (
                   <div key={photo.id} className="relative group w-24 h-24 rounded-lg overflow-hidden cursor-pointer" onClick={() => setLightboxPhoto(photo.url)}>
                     <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }}
-                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                    >×</button>
+                    <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }} className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">×</button>
                   </div>
                 ))}
               </div>
             )}
-
             <div className="grid grid-cols-3 gap-6">
               {categories.map(cat => (
                 <div key={cat}>
@@ -271,135 +247,156 @@ export default function Home() {
             </div>
           </div>
         ))}
-
-        {lightboxPhoto && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setLightboxPhoto(null)}>
-            <img src={lightboxPhoto} alt="" className="max-w-full max-h-full object-contain rounded-lg" style={{ maxWidth: '90vw', maxHeight: '90vh' }} />
-          </div>
-        )}
-
-        {detailItem && (
-          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => { setDetailItem(null); setEditingId(null) }}>
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex gap-4 items-start">
-                  {detailItem.cover && <img src={detailItem.cover} alt="" className="w-16 h-24 object-cover rounded-lg" />}
-                  <div>
-                    <div className="text-sm font-medium text-[#1a1a1a]">{detailItem.title}</div>
-                    <div className="text-xs text-[#999] mt-1">{detailItem.subtitle}</div>
-                    <div className="text-xs text-[#bbb] mt-1">{detailItem.category} · {detailItem.year}</div>
-                  </div>
-                </div>
-                <button onClick={() => { setDetailItem(null); setEditingId(null) }} className="text-[#999] text-xs">✕</button>
-              </div>
-              {editingId === detailItem.id ? (
-                <div className="space-y-2">
-                  <textarea
-                    className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none resize-none"
-                    rows={3}
-                    value={editingMemo}
-                    onChange={e => setEditingMemo(e.target.value)}
-                    autoFocus
-                    placeholder="Add a note..."
-                  />
-                  <div className="flex gap-2">
-                    <button onClick={() => saveMemo(detailItem.id)} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Save</button>
-                    <button onClick={() => setEditingId(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {detailItem.memo && <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">{detailItem.memo}</div>}
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }} className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5] hover:bg-[#f7f6f3]">
-                      {detailItem.memo ? 'Edit note' : '+ Add note'}
-                    </button>
-                    <button onClick={() => deleteItem(detailItem.id)} className="text-xs text-[#ccc] hover:text-red-400 rounded-lg py-2 px-3 border border-[#e5e5e5]">Delete</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showForm && (
-          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium">Add to {activeCategory}</span>
-                <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]"
-                  placeholder="Search..."
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && search()}
-                />
-                <button onClick={search} className="text-sm bg-[#1a1a1a] text-white rounded-lg px-4 py-2">
-                  {searching ? '...' : 'Search'}
-                </button>
-              </div>
-              {results.length > 0 && !selected && (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {results.map((r, i) => (
-                    <div key={i} onClick={() => setSelected(r)} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
-                      {r.cover && <img src={r.cover} alt="" className="w-8 h-11 object-cover rounded" />}
-                      <div>
-                        <div className="text-sm font-medium text-[#1a1a1a]">{r.title}</div>
-                        <div className="text-xs text-[#999]">{r.subtitle}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selected && (
-                <div className="space-y-3">
-                  <div className="flex gap-3 items-center p-2 bg-[#f7f6f3] rounded-lg">
-                    {selected.cover && <img src={selected.cover} alt="" className="w-8 h-11 object-cover rounded" />}
-                    <div>
-                      <div className="text-sm font-medium text-[#1a1a1a]">{selected.title}</div>
-                      <div className="text-xs text-[#999]">{selected.subtitle}</div>
-                    </div>
-                  </div>
-                  <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder={getPlaceholder(activeCategory)} value={year} onChange={e => setYear(parseInt(e.target.value))} />
-                  <input className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Notes (optional)" value={memo} onChange={e => setMemo(e.target.value)} />
-                  <div className="flex gap-2">
-                    <button onClick={addItem} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Add</button>
-                    <button onClick={() => setSelected(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">Search again</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showPhotoForm && (
-          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowPhotoForm(false)}>
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium">Add Photo</span>
-                <button onClick={() => setShowPhotoForm(false)} className="text-[#999] text-xs">Cancel</button>
-              </div>
-              <input
-                type="number"
-                className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none"
-                placeholder="Year"
-                value={photoYear}
-                onChange={e => setPhotoYear(parseInt(e.target.value))}
-              />
-              <button
-                onClick={() => photoFileInputRef.current?.click()}
-                className="w-full text-sm bg-[#1a1a1a] text-white rounded-lg py-2"
-              >
-                {uploading ? 'Uploading...' : 'Choose Photo'}
-              </button>
-            </div>
-          </div>
-        )}
-
       </div>
+
+      {/* 하단 바 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-6 py-3 flex justify-between items-center">
+        <span className="text-xs text-[#999]">whatiwas</span>
+        <button onClick={() => setShowProfile(true)} className="flex items-center gap-2">
+          {session.user.user_metadata?.picture && (
+            <img src={session.user.user_metadata.picture} alt="" className="w-7 h-7 rounded-full" />
+          )}
+          <span className="text-xs text-[#555]">{session.user.user_metadata?.name || session.user.email}</span>
+        </button>
+      </div>
+
+      {/* 프로필 팝업 */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowProfile(false)}>
+          <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 mx-4 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              {session.user.user_metadata?.picture && (
+                <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />
+              )}
+              <div>
+                <div className="text-sm font-medium text-[#1a1a1a]">{session.user.user_metadata?.name}</div>
+                <div className="text-xs text-[#999]">{session.user.email}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="bg-[#f7f6f3] rounded-xl py-3">
+                <div className="text-lg font-medium text-[#1a1a1a]">{items.filter(i => i.category === 'Books').length}</div>
+                <div className="text-xs text-[#999]">Books</div>
+              </div>
+              <div className="bg-[#f7f6f3] rounded-xl py-3">
+                <div className="text-lg font-medium text-[#1a1a1a]">{items.filter(i => i.category === 'Music').length}</div>
+                <div className="text-xs text-[#999]">Music</div>
+              </div>
+              <div className="bg-[#f7f6f3] rounded-xl py-3">
+                <div className="text-lg font-medium text-[#1a1a1a]">{items.filter(i => i.category === 'Movies').length}</div>
+                <div className="text-xs text-[#999]">Movies</div>
+              </div>
+            </div>
+            <button onClick={() => { supabase.auth.signOut(); setShowProfile(false) }} className="w-full text-sm text-[#999] py-3 border border-[#e5e5e5] rounded-xl hover:bg-[#f7f6f3]">
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
+      {lightboxPhoto && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setLightboxPhoto(null)}>
+          <img src={lightboxPhoto} alt="" className="max-w-full max-h-full object-contain rounded-lg" style={{ maxWidth: '90vw', maxHeight: '90vh' }} />
+        </div>
+      )}
+
+      {detailItem && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => { setDetailItem(null); setEditingId(null) }}>
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex gap-4 items-start">
+                {detailItem.cover && <img src={detailItem.cover} alt="" className="w-16 h-24 object-cover rounded-lg" />}
+                <div>
+                  <div className="text-sm font-medium text-[#1a1a1a]">{detailItem.title}</div>
+                  <div className="text-xs text-[#999] mt-1">{detailItem.subtitle}</div>
+                  <div className="text-xs text-[#bbb] mt-1">{detailItem.category} · {detailItem.year}</div>
+                </div>
+              </div>
+              <button onClick={() => { setDetailItem(null); setEditingId(null) }} className="text-[#999] text-xs">✕</button>
+            </div>
+            {editingId === detailItem.id ? (
+              <div className="space-y-2">
+                <textarea className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none resize-none" rows={3} value={editingMemo} onChange={e => setEditingMemo(e.target.value)} autoFocus placeholder="Add a note..." />
+                <div className="flex gap-2">
+                  <button onClick={() => saveMemo(detailItem.id)} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Save</button>
+                  <button onClick={() => setEditingId(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {detailItem.memo && <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">{detailItem.memo}</div>}
+                <div className="flex gap-2">
+                  <button onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }} className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5] hover:bg-[#f7f6f3]">
+                    {detailItem.memo ? 'Edit note' : '+ Add note'}
+                  </button>
+                  <button onClick={() => deleteItem(detailItem.id)} className="text-xs text-[#ccc] hover:text-red-400 rounded-lg py-2 px-3 border border-[#e5e5e5]">Delete</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-medium">Add to {activeCategory}</span>
+              <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
+            </div>
+            <div className="flex gap-2">
+              <input className="flex-1 text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} />
+              <button onClick={search} className="text-sm bg-[#1a1a1a] text-white rounded-lg px-4 py-2">{searching ? '...' : 'Search'}</button>
+            </div>
+            {results.length > 0 && !selected && (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {results.map((r, i) => (
+                  <div key={i} onClick={() => setSelected(r)} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
+                    {r.cover && <img src={r.cover} alt="" className="w-8 h-11 object-cover rounded" />}
+                    <div>
+                      <div className="text-sm font-medium text-[#1a1a1a]">{r.title}</div>
+                      <div className="text-xs text-[#999]">{r.subtitle}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {selected && (
+              <div className="space-y-3">
+                <div className="flex gap-3 items-center p-2 bg-[#f7f6f3] rounded-lg">
+                  {selected.cover && <img src={selected.cover} alt="" className="w-8 h-11 object-cover rounded" />}
+                  <div>
+                    <div className="text-sm font-medium text-[#1a1a1a]">{selected.title}</div>
+                    <div className="text-xs text-[#999]">{selected.subtitle}</div>
+                  </div>
+                </div>
+                <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder={getPlaceholder(activeCategory)} value={year} onChange={e => setYear(parseInt(e.target.value))} />
+                <input className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Notes (optional)" value={memo} onChange={e => setMemo(e.target.value)} />
+                <div className="flex gap-2">
+                  <button onClick={addItem} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Add</button>
+                  <button onClick={() => setSelected(null)} className="flex-1 text-sm text-[#999] rounded-lg py-2 border border-[#e5e5e5]">Search again</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showPhotoForm && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowPhotoForm(false)}>
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-medium">Add Photo</span>
+              <button onClick={() => setShowPhotoForm(false)} className="text-[#999] text-xs">Cancel</button>
+            </div>
+            <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="Year" value={photoYear} onChange={e => setPhotoYear(parseInt(e.target.value))} />
+            <button onClick={() => photoFileInputRef.current?.click()} className="w-full text-sm bg-[#1a1a1a] text-white rounded-lg py-2">
+              {uploading ? 'Uploading...' : 'Choose Photo'}
+            </button>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
