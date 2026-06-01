@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import { Auth } from '@supabase/auth-ui-react'
+import { ThemeSupa } from '@supabase/auth-ui-shared'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +20,7 @@ type Item = {
   year: number
   category: Category
   memo: string
+  user_id: string
 }
 
 type SeasonPhoto = {
@@ -25,9 +28,12 @@ type SeasonPhoto = {
   year: number
   season: string
   url: string
+  user_id: string
 }
 
 export default function Home() {
+  const [session, setSession] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
   const [photos, setPhotos] = useState<SeasonPhoto[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -47,12 +53,20 @@ export default function Home() {
   const [detailItem, setDetailItem] = useState<Item | null>(null)
   const photoFileInputRef = useRef<HTMLInputElement>(null)
 
-  const allYears = [...new Set([
-    ...items.map(i => Number(i.year)),
-    ...photos.map(p => Number(p.year))
-  ])].sort((a, b) => b - a)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
-  useEffect(() => { fetchItems(); fetchPhotos() }, [])
+  useEffect(() => {
+    if (session) { fetchItems(); fetchPhotos() }
+  }, [session])
 
   const fetchItems = async () => {
     const { data } = await supabase.from('items').select('*').order('year', { ascending: false })
@@ -63,6 +77,11 @@ export default function Home() {
     const { data } = await supabase.from('season_photos').select('*').order('id', { ascending: true })
     if (data) setPhotos(data as SeasonPhoto[])
   }
+
+  const allYears = [...new Set([
+    ...items.map(i => Number(i.year)),
+    ...photos.map(p => Number(p.year))
+  ])].sort((a, b) => b - a)
 
   const search = async () => {
     if (!query) return
@@ -77,7 +96,7 @@ export default function Home() {
   }
 
   const addItem = async () => {
-    if (!selected) return
+    if (!selected || !session) return
     const count = items.filter(i => i.category === activeCategory && Number(i.year) === year).length
     if (count >= 5) {
       alert(`You can only add up to 5 ${activeCategory} per year.`)
@@ -90,6 +109,7 @@ export default function Home() {
       year,
       category: activeCategory,
       memo,
+      user_id: session.user.id,
     }).select()
     if (data) setItems(prev => [...prev, { ...data[0], year: parseInt(data[0].year) } as Item])
     setShowForm(false)
@@ -120,7 +140,7 @@ export default function Home() {
 
   const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !session) return
     const yearPhotos = photos.filter(p => Number(p.year) === photoYear)
     if (yearPhotos.length >= 5) {
       alert('You can only add up to 5 photos per year.')
@@ -128,12 +148,12 @@ export default function Home() {
     }
     setUploading(true)
     const slot = yearPhotos.length + 1
-    const path = `public/${photoYear}/photo_${slot}.jpg`
+    const path = `public/${session.user.id}/${photoYear}/photo_${slot}.jpg`
     const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
       const url = urlData.publicUrl
-      const { data } = await supabase.from('season_photos').insert({ year: photoYear, season: `photo_${slot}`, url }).select()
+      const { data } = await supabase.from('season_photos').insert({ year: photoYear, season: `photo_${slot}`, url, user_id: session.user.id }).select()
       if (data) setPhotos(prev => [...prev, data[0] as SeasonPhoto])
     }
     setUploading(false)
@@ -147,13 +167,38 @@ export default function Home() {
     return 'Year you watched it'
   }
 
+  if (loading) return <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center"><div className="text-sm text-[#999]">Loading...</div></div>
+
+  if (!session) return (
+    <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-sm mx-4 shadow-sm">
+        <h1 className="text-xl font-medium text-[#1a1a1a] mb-1">whatiwas</h1>
+        <p className="text-xs text-[#999] mb-6">A personal archive of taste across the years.</p>
+        <Auth
+          supabaseClient={supabase}
+          appearance={{ theme: ThemeSupa }}
+          providers={['google']}
+          onlyThirdPartyProviders
+        />
+      </div>
+    </div>
+  )
+
   return (
     <main className="min-h-screen bg-[#f7f6f3]">
       <div className="max-w-2xl mx-auto px-6 py-12">
 
-        <div className="mb-8">
-          <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
-          <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
+            <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
+          </div>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="text-xs text-[#bbb] hover:text-[#999]"
+          >
+            Sign out
+          </button>
         </div>
 
         <div className="flex gap-3 mb-8 flex-wrap">
@@ -227,14 +272,12 @@ export default function Home() {
           </div>
         ))}
 
-        {/* 사진 라이트박스 */}
         {lightboxPhoto && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setLightboxPhoto(null)}>
             <img src={lightboxPhoto} alt="" className="max-w-full max-h-full object-contain rounded-lg" style={{ maxWidth: '90vw', maxHeight: '90vh' }} />
           </div>
         )}
 
-        {/* 콘텐츠 상세 팝업 */}
         {detailItem && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => { setDetailItem(null); setEditingId(null) }}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
@@ -249,7 +292,6 @@ export default function Home() {
                 </div>
                 <button onClick={() => { setDetailItem(null); setEditingId(null) }} className="text-[#999] text-xs">✕</button>
               </div>
-
               {editingId === detailItem.id ? (
                 <div className="space-y-2">
                   <textarea
@@ -267,22 +309,12 @@ export default function Home() {
                 </div>
               ) : (
                 <div>
-                  {detailItem.memo ? (
-                    <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">{detailItem.memo}</div>
-                  ) : null}
+                  {detailItem.memo && <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">{detailItem.memo}</div>}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }}
-                      className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5] hover:bg-[#f7f6f3]"
-                    >
+                    <button onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }} className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5] hover:bg-[#f7f6f3]">
                       {detailItem.memo ? 'Edit note' : '+ Add note'}
                     </button>
-                    <button
-                      onClick={() => deleteItem(detailItem.id)}
-                      className="text-xs text-[#ccc] hover:text-red-400 rounded-lg py-2 px-3 border border-[#e5e5e5]"
-                    >
-                      Delete
-                    </button>
+                    <button onClick={() => deleteItem(detailItem.id)} className="text-xs text-[#ccc] hover:text-red-400 rounded-lg py-2 px-3 border border-[#e5e5e5]">Delete</button>
                   </div>
                 </div>
               )}
@@ -290,7 +322,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 콘텐츠 추가 모달 */}
         {showForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
@@ -344,7 +375,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 사진 추가 모달 */}
         {showPhotoForm && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowPhotoForm(false)}>
             <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
