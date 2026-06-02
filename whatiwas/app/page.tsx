@@ -39,6 +39,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
   const [photos, setPhotos] = useState<SeasonPhoto[]>([])
+  const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [showForm, setShowForm] = useState(false)
   const [showPhotoForm, setShowPhotoForm] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
@@ -167,6 +168,12 @@ export default function Home() {
     return `${item.year}`
   }
 
+  const getCategoryColor = (cat: Category) => {
+    if (cat === 'Books') return '#7a9ac9'
+    if (cat === 'Music') return '#c97a9a'
+    return '#a97ac9'
+  }
+
   if (loading) return <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center"><div className="text-sm text-[#999]">Loading...</div></div>
 
   if (!session) return (
@@ -180,79 +187,142 @@ export default function Home() {
   )
 
   return (
-    <main className="min-h-screen bg-[#f7f6f3] pb-20">
-      <div className="max-w-2xl mx-auto px-6 py-12">
+    <main className="min-h-screen bg-[#f7f6f3] pb-24">
+      <div className="max-w-2xl mx-auto px-6 py-10">
 
-        <div className="mb-8">
-          <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
-          <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
+            <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
+          </div>
         </div>
 
-        <div className="flex gap-3 mb-8 flex-wrap">
-          {categories.map(cat => (
-            <button key={cat} onClick={() => { setActiveCategory(cat); setShowForm(true) }} className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors">
-              + {cat}
-            </button>
-          ))}
-          <button onClick={() => setShowPhotoForm(true)} className="text-xs px-4 py-2 rounded-full border border-[#ddd] text-[#555] hover:border-[#999] hover:text-[#1a1a1a] transition-colors">
-            + Photo
+        {/* 탭 */}
+        <div className="flex gap-0 mb-8 border-b border-[#e5e5e5]">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`pb-2 px-1 mr-6 text-sm transition-all ${activeTab === 'profile' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}
+          >
+            Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('archive')}
+            className={`pb-2 px-1 text-sm transition-all ${activeTab === 'archive' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}
+          >
+            Archive
           </button>
         </div>
 
-        <div className="border-t border-[#e5e5e5] mb-10" />
+        {/* Profile 탭 */}
+        {activeTab === 'profile' && (
+          <div className="space-y-4">
+            {items.length < 3 ? (
+              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-6 text-center">
+                <div className="text-sm text-[#999] mb-1">Add at least 3 items</div>
+                <div className="text-xs text-[#bbb]">to see your taste profile</div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
+                <div className="text-xs text-[#bbb] font-medium mb-2 tracking-wider">YOUR TASTE</div>
+                <div className="text-sm text-[#1a1a1a] leading-relaxed">
+                  {items.filter(i => i.category === 'Books').length}권의 책, {items.filter(i => i.category === 'Music').length}곡의 음악, {items.filter(i => i.category === 'Movies').length}편의 영화를 기록했어요.
+                </div>
+              </div>
+            )}
 
-        <input ref={photoFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFileChange} />
+            {/* 연도별 변화 */}
+            {allYears.length > 0 && (
+              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
+                <div className="text-xs text-[#bbb] font-medium mb-4 tracking-wider">ACROSS THE YEARS</div>
+                <div className="flex gap-4 overflow-x-auto pb-1">
+                  {allYears.map(y => (
+                    <div key={y} className="flex-shrink-0 min-w-[100px]">
+                      <div className="text-xs font-medium text-[#999] mb-2">{y}</div>
+                      <div className="space-y-1">
+                        {categories.map(cat => {
+                          const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
+                          if (catItems.length === 0) return null
+                          return (
+                            <div key={cat} className="flex gap-1 flex-wrap">
+                              {catItems.slice(0, 3).map(item => (
+                                item.cover ? (
+                                  <img key={item.id} src={item.cover} alt="" className={`object-cover rounded ${cat === 'Music' ? 'w-7 h-7 rounded-full' : 'w-5 h-7'}`} />
+                                ) : (
+                                  <div key={item.id} className={`bg-[#f0efe9] rounded ${cat === 'Music' ? 'w-7 h-7 rounded-full' : 'w-5 h-7'}`} />
+                                )
+                              ))}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {items.length === 0 && photos.length === 0 && (
-          <div className="text-sm text-[#bbb] py-8 text-center">Start by adding a book, song, or movie.</div>
+            {/* 사진 */}
+            {photos.length > 0 && (
+              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
+                <div className="text-xs text-[#bbb] font-medium mb-4 tracking-wider">MOMENTS</div>
+                <div className="flex gap-2 flex-wrap">
+                  {photos.slice(0, 5).map(photo => (
+                    <div key={photo.id} className="relative group w-20 h-20 rounded-lg overflow-hidden cursor-pointer" onClick={() => setLightboxPhoto(photo.url)}>
+                      <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                      <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }} className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-4 h-4 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
-        {allYears.map(y => (
-          <div key={y} className="mb-16">
-            <div className="text-lg font-medium text-[#1a1a1a] mb-6">{y}</div>
+        {/* Archive 탭 */}
+        {activeTab === 'archive' && (
+          <div>
+            <input ref={photoFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFileChange} />
 
-            {photos.filter(p => Number(p.year) === y).length > 0 && (
-              <div className="flex gap-2 mb-8 flex-wrap">
-                {photos.filter(p => Number(p.year) === y).map(photo => (
-                  <div key={photo.id} className="relative group w-24 h-24 rounded-lg overflow-hidden cursor-pointer" onClick={() => setLightboxPhoto(photo.url)}>
-                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                    <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo.id) }} className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">×</button>
+            {items.length === 0 ? (
+              <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
+            ) : (
+              <div className="space-y-8">
+                {allYears.map(y => (
+                  <div key={y}>
+                    <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
+                    <div className="space-y-1">
+                      {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
+                        <div key={item.id} className="flex gap-3 items-start py-2 border-b border-[#ebebeb] cursor-pointer" onClick={() => setDetailItem(item)}>
+                          {item.cover ? (
+                            <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-7 h-10'}`} />
+                          ) : (
+                            <div className={`bg-[#f0efe9] rounded flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-7 h-10'}`} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-[#1a1a1a] truncate">{item.title}</div>
+                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-[#bbb]">{formatDate(item)}</span>
+                              <span className="text-xs" style={{ color: getCategoryColor(item.category) }}>{item.category}</span>
+                            </div>
+                            {item.memo && <div className="text-xs text-[#777] italic mt-0.5 truncate">"{item.memo}"</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-
-            <div className="grid grid-cols-3 gap-6">
-              {categories.map(cat => (
-                <div key={cat}>
-                  <div className="text-xs font-medium text-[#1a1a1a] mb-3">{cat}</div>
-                  <div className="space-y-3">
-                    {items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y).map(item => (
-                      <div key={item.id} className="group cursor-pointer" onClick={() => setDetailItem(item)}>
-                        <div className="flex gap-2 items-start">
-                          {item.cover && <img src={item.cover} alt="" className="w-6 h-9 object-cover rounded flex-shrink-0" />}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
-                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-                            <div className="text-xs text-[#bbb] mt-0.5">{formatDate(item)}</div>
-                            {item.memo && <div className="text-xs text-[#777] italic mt-0.5 truncate">{item.memo}</div>}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y).length === 0 && (
-                      <div className="text-xs text-[#ddd]">—</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-        ))}
+        )}
       </div>
 
+      {/* 하단 바 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-6 py-3 flex justify-between items-center">
-        <span className="text-xs text-[#999]">whatiwas</span>
+        <button onClick={() => setShowForm(true)} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">
+          + Add
+        </button>
         <button onClick={() => setShowProfile(true)} className="flex items-center gap-2">
           {session.user.user_metadata?.picture && (
             <img src={session.user.user_metadata.picture} alt="" className="w-7 h-7 rounded-full" />
@@ -261,6 +331,7 @@ export default function Home() {
         </button>
       </div>
 
+      {/* 프로필 팝업 */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowProfile(false)}>
           <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 mx-4 space-y-4" onClick={e => e.stopPropagation()}>
@@ -305,7 +376,7 @@ export default function Home() {
           <div className="bg-white w-full max-w-md rounded-2xl p-6 mx-4" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start mb-4">
               <div className="flex gap-4 items-start">
-                {detailItem.cover && <img src={detailItem.cover} alt="" className="w-16 h-24 object-cover rounded-lg" />}
+                {detailItem.cover && <img src={detailItem.cover} alt="" className={`object-cover rounded-lg ${detailItem.category === 'Music' ? 'w-16 h-16 rounded-full' : 'w-16 h-24'}`} />}
                 <div>
                   <div className="text-sm font-medium text-[#1a1a1a]">{detailItem.title}</div>
                   <div className="text-xs text-[#999] mt-1">{detailItem.subtitle}</div>
@@ -324,7 +395,7 @@ export default function Home() {
               </div>
             ) : (
               <div>
-                {detailItem.memo && <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">{detailItem.memo}</div>}
+                {detailItem.memo && <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">"{detailItem.memo}"</div>}
                 <div className="flex gap-2">
                   <button onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }} className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5] hover:bg-[#f7f6f3]">
                     {detailItem.memo ? 'Edit note' : '+ Add note'}
@@ -338,11 +409,18 @@ export default function Home() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-3 mx-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowForm(false)}>
+          <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-sm font-medium">Add to {activeCategory}</span>
+              <span className="text-sm font-medium">Add</span>
               <button onClick={() => setShowForm(false)} className="text-[#999] text-xs">Cancel</button>
+            </div>
+            <div className="flex gap-2 mb-2">
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setActiveCategory(cat)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${activeCategory === cat ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}>
+                  {cat}
+                </button>
+              ))}
             </div>
             <div className="flex gap-2">
               <input className="flex-1 text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} />
@@ -352,7 +430,7 @@ export default function Home() {
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {results.map((r, i) => (
                   <div key={i} onClick={() => setSelected(r)} className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f7f6f3] cursor-pointer">
-                    {r.cover && <img src={r.cover} alt="" className="w-8 h-11 object-cover rounded" />}
+                    {r.cover && <img src={r.cover} alt="" className={`object-cover rounded flex-shrink-0 ${activeCategory === 'Music' ? 'w-8 h-8 rounded-full' : 'w-8 h-11'}`} />}
                     <div>
                       <div className="text-sm font-medium text-[#1a1a1a]">{r.title}</div>
                       <div className="text-xs text-[#999]">{r.subtitle}</div>
@@ -364,13 +442,13 @@ export default function Home() {
             {selected && (
               <div className="space-y-3">
                 <div className="flex gap-3 items-center p-2 bg-[#f7f6f3] rounded-lg">
-                  {selected.cover && <img src={selected.cover} alt="" className="w-8 h-11 object-cover rounded" />}
+                  {selected.cover && <img src={selected.cover} alt="" className={`object-cover rounded flex-shrink-0 ${activeCategory === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-11'}`} />}
                   <div>
                     <div className="text-sm font-medium text-[#1a1a1a]">{selected.title}</div>
                     <div className="text-xs text-[#999]">{selected.subtitle}</div>
                   </div>
                 </div>
-                <div className="text-xs text-[#999] px-1">Will be saved as {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div className="text-xs text-[#999] px-1">Saving as {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                 <input className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none placeholder:text-[#bbb]" placeholder="Notes (optional)" value={memo} onChange={e => setMemo(e.target.value)} />
                 <div className="flex gap-2">
                   <button onClick={addItem} className="flex-1 text-sm bg-[#1a1a1a] text-white rounded-lg py-2">Add</button>
@@ -378,6 +456,11 @@ export default function Home() {
                 </div>
               </div>
             )}
+            <div className="border-t border-[#e5e5e5] pt-3">
+              <button onClick={() => { setShowForm(false); setShowPhotoForm(true) }} className="w-full text-xs text-[#999] py-2 border border-dashed border-[#ddd] rounded-xl">
+                + Add Photo
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -389,7 +472,7 @@ export default function Home() {
               <span className="text-sm font-medium">Add Photo</span>
               <button onClick={() => setShowPhotoForm(false)} className="text-[#999] text-xs">Cancel</button>
             </div>
-            <div className="text-xs text-[#999] px-1">Will be saved as {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            <div className="text-xs text-[#999] px-1">Saving as {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
             <button onClick={() => photoFileInputRef.current?.click()} className="w-full text-sm bg-[#1a1a1a] text-white rounded-lg py-2">
               {uploading ? 'Uploading...' : 'Choose Photo'}
             </button>
