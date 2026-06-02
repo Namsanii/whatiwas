@@ -48,7 +48,6 @@ export default function Home() {
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<any>(null)
   const [memo, setMemo] = useState('')
-  const [photoYear, setPhotoYear] = useState(new Date().getFullYear())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -138,7 +137,8 @@ export default function Home() {
   const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !session) return
-    const yearPhotos = photos.filter(p => Number(p.year) === photoYear)
+    const thisYear = new Date().getFullYear()
+    const yearPhotos = photos.filter(p => Number(p.year) === thisYear)
     if (yearPhotos.length >= 5) {
       alert('You can only add up to 5 photos per year.')
       return
@@ -146,12 +146,12 @@ export default function Home() {
     setUploading(true)
     const slot = yearPhotos.length + 1
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const path = `public/${session.user.id}/${photoYear}/photo_${slot}.${ext}`
+    const path = `public/${session.user.id}/${thisYear}/photo_${slot}.${ext}`
     const { error } = await supabase.storage.from('photo').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
       const url = urlData.publicUrl
-      const { data } = await supabase.from('season_photos').insert({ year: photoYear, season: `photo_${slot}`, url, user_id: session.user.id }).select()
+      const { data } = await supabase.from('season_photos').insert({ year: thisYear, season: `photo_${slot}`, url, user_id: session.user.id }).select()
       if (data) setPhotos(prev => [...prev, data[0] as SeasonPhoto])
     }
     setUploading(false)
@@ -389,7 +389,7 @@ export default function Home() {
               <span className="text-sm font-medium">Add Photo</span>
               <button onClick={() => setShowPhotoForm(false)} className="text-[#999] text-xs">Cancel</button>
             </div>
-            <input type="number" className="w-full text-sm bg-[#f7f6f3] rounded-lg px-3 py-2 outline-none" placeholder="Year" value={photoYear} onChange={e => setPhotoYear(parseInt(e.target.value))} />
+            <div className="text-xs text-[#999] px-1">Will be saved as {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
             <button onClick={() => photoFileInputRef.current?.click()} className="w-full text-sm bg-[#1a1a1a] text-white rounded-lg py-2">
               {uploading ? 'Uploading...' : 'Choose Photo'}
             </button>
