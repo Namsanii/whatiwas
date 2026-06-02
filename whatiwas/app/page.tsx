@@ -393,7 +393,7 @@ export default function Home() {
                           if (catItems.length === 0) return null
                           return (
                             <div key={cat} className="flex gap-1">
-                              {catItems.slice(0, 3).map(item => (
+{catItems.map(item => (
                                 item.cover ? (
                                   <img key={item.id} src={item.cover} alt="" className={`object-cover ${cat === 'Music' ? 'w-7 h-7 rounded-full' : 'w-5 h-7 rounded'}`} />
                                 ) : (
