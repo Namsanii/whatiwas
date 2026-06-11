@@ -32,6 +32,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
+  const [archiveView, setArchiveView] = useState<'list' | 'grid'>('list')
   const [showProfile, setShowProfile] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
@@ -240,7 +241,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* 연도별 상세 */}
       {selectedYear && (
         <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-6 py-10 w-full">
@@ -406,7 +406,6 @@ export default function Home() {
 
         {activeTab === 'profile' && (
           <div className="space-y-4">
-            {/* YOUR TASTE */}
             <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
               <div className="flex justify-between items-center mb-3">
                 <div className="text-xs text-[#bbb] font-medium tracking-wider">YOUR TASTE</div>
@@ -427,7 +426,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* ACROSS THE YEARS */}
             {allYears.length > 0 && (
               <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
                 <div className="text-xs text-[#bbb] font-medium mb-6 tracking-wider">ACROSS THE YEARS</div>
@@ -464,9 +462,14 @@ export default function Home() {
 
         {activeTab === 'archive' && (
           <div>
+            <div className="flex justify-end mb-4 gap-2">
+              <button onClick={() => setArchiveView('list')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${archiveView === 'list' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}>리스트</button>
+              <button onClick={() => setArchiveView('grid')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${archiveView === 'grid' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}>그리드</button>
+            </div>
+
             {items.length === 0 ? (
               <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
-            ) : (
+            ) : archiveView === 'list' ? (
               <div className="space-y-8">
                 {allYears.map(y => (
                   <div key={y}>
@@ -485,6 +488,23 @@ export default function Home() {
                           </div>
                           <div className="text-xs text-[#bbb] flex-shrink-0">{formatDate(item)}</div>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {allYears.map(y => (
+                  <div key={y}>
+                    <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
+                        item.cover ? (
+                          <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${item.category === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                        ) : (
+                          <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${item.category === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                        )
                       ))}
                     </div>
                   </div>
