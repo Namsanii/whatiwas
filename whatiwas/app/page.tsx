@@ -31,6 +31,8 @@ export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
+  const [featuredIds, setFeaturedIds] = useState<string[]>([])
+  const [editingFeatured, setEditingFeatured] = useState(false)
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [archiveView, setArchiveView] = useState<'list' | 'grid'>('list')
   const [showProfile, setShowProfile] = useState(false)
@@ -78,7 +80,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (session) { fetchItems(); fetchProfile() }
+    if (session) { fetchItems(); fetchProfile(); fetchFeatured() }
   }, [session])
 
   useEffect(() => {
@@ -96,6 +98,34 @@ export default function Home() {
     if (data) {
       setUsername(data.username || '')
       setTasteText(data.taste_text || '')
+    }
+  }
+
+  const fetchFeatured = async () => {
+    if (!session) return
+    const { data } = await supabase.from('featured_items').select('item_id').eq('user_id', session.user.id)
+    if (data) setFeaturedIds(data.map((f: any) => String(f.item_id)))
+  }
+
+  const toggleFeatured = async (item: Item) => {
+    if (!session) return
+    const id = String(item.id)
+    const cat = item.category
+    const currentCatFeatured = featuredIds.filter(fid => {
+      const found = items.find(i => String(i.id) === fid)
+      return found?.category === cat
+    })
+
+    if (featuredIds.includes(id)) {
+      await supabase.from('featured_items').delete().eq('user_id', session.user.id).eq('item_id', item.id)
+      setFeaturedIds(prev => prev.filter(fid => fid !== id))
+    } else {
+      if (currentCatFeatured.length >= 3) {
+        alert(`${cat}는 최대 3개까지 선택할 수 있어요.`)
+        return
+      }
+      await supabase.from('featured_items').insert({ user_id: session.user.id, item_id: item.id })
+      setFeaturedIds(prev => [...prev, id])
     }
   }
 
@@ -200,6 +230,7 @@ export default function Home() {
   }
 
   const allYears = [...new Set(items.map(i => new Date(i.created_at).getFullYear()))].sort((a, b) => b - a)
+  const featuredItems = items.filter(i => featuredIds.includes(String(i.id)))
 
   const formatDate = (item: Item) => {
     const d = new Date(item.created_at)
@@ -238,6 +269,53 @@ export default function Home() {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
           <div className="text-sm font-medium">{savedFeedback} 기록됐어요</div>
+        </div>
+      )}
+
+      {/* Featured 편집 모달 */}
+      {editingFeatured && (
+        <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-6 py-10">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-sm font-medium text-[#1a1a1a]">프로필에 보여줄 것들</div>
+              <button onClick={() => setEditingFeatured(false)} className="text-xs text-[#999]">완료</button>
+            </div>
+            <div className="text-xs text-[#bbb] mb-8">카테고리별 최대 3개씩 선택할 수 있어요.</div>
+            {categories.map(cat => {
+              const catItems = items.filter(i => i.category === cat)
+              if (catItems.length === 0) return null
+              const selectedCount = catItems.filter(i => featuredIds.includes(String(i.id))).length
+              return (
+                <div key={cat} className="mb-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="text-xs font-medium text-[#bbb] tracking-wider">{cat.toUpperCase()}</div>
+                    <div className="text-xs text-[#bbb]">{selectedCount}/3</div>
+                  </div>
+                  <div className="space-y-1">
+                    {catItems.map(item => {
+                      const isFeatured = featuredIds.includes(String(item.id))
+                      return (
+                        <div key={item.id} onClick={() => toggleFeatured(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isFeatured ? 'opacity-100' : 'opacity-50'}`}>
+                          {item.cover ? (
+                            <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${cat === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+                          ) : (
+                            <div className={`bg-[#f0efe9] flex-shrink-0 ${cat === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
+                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isFeatured ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-[#ddd]'}`}>
+                            {isFeatured && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -406,6 +484,7 @@ export default function Home() {
 
         {activeTab === 'profile' && (
           <div className="space-y-4">
+            {/* YOUR TASTE */}
             <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
               <div className="flex justify-between items-center mb-3">
                 <div className="text-xs text-[#bbb] font-medium tracking-wider">YOUR TASTE</div>
@@ -426,37 +505,37 @@ export default function Home() {
               )}
             </div>
 
-            {allYears.length > 0 && (
-              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
-                <div className="text-xs text-[#bbb] font-medium mb-6 tracking-wider">ACROSS THE YEARS</div>
-                <div className="flex flex-col gap-8">
-                  {allYears.map(y => (
-                    <div key={y}>
-                      <div className="text-xs font-medium text-[#999] mb-3 cursor-pointer hover:text-[#1a1a1a] transition-colors" onClick={() => setSelectedYear(y)}>
-                        {y} →
-                      </div>
-                      <div className="space-y-2">
-                        {categories.map(cat => {
-                          const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
-                          if (catItems.length === 0) return null
-                          return (
-                            <div key={cat} className="flex gap-2 flex-wrap">
-                              {catItems.map(item => (
-                                item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setSelectedYear(y)} />
-                                ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setSelectedYear(y)} />
-                                )
-                              ))}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* 선택된 콘텐츠 */}
+            <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
+              <div className="flex justify-between items-center mb-6">
+                <div className="text-xs text-[#bbb] font-medium tracking-wider">MY PICKS</div>
+                <button onClick={() => setEditingFeatured(true)} className="text-xs text-[#bbb] hover:text-[#555]">편집</button>
               </div>
-            )}
+              {featuredItems.length === 0 ? (
+                <div className="text-xs text-[#bbb] text-center py-4">편집 버튼을 눌러 보여줄 것들을 선택해요.</div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {categories.map(cat => {
+                    const catFeatured = featuredItems.filter(i => i.category === cat)
+                    if (catFeatured.length === 0) return null
+                    return (
+                      <div key={cat}>
+                        <div className="text-xs text-[#bbb] mb-3">{cat}</div>
+                        <div className="flex gap-2 flex-wrap">
+                          {catFeatured.map(item => (
+                            item.cover ? (
+                              <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                            ) : (
+                              <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                            )
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
