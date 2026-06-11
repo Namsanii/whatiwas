@@ -33,6 +33,12 @@ export default function Home() {
   const [items, setItems] = useState<Item[]>([])
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [showProfile, setShowProfile] = useState(false)
+  const [username, setUsername] = useState('')
+const [editingUsername, setEditingUsername] = useState(false)
+const [usernameInput, setUsernameInput] = useState('')
+const [tasteText, setTasteText] = useState('')
+const [editingTaste, setEditingTaste] = useState(false)
+const [tasteInput, setTasteInput] = useState('')
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   const [step, setStep] = useState<'idle' | 'select' | 'search' | 'confirm' | 'photo'>('idle')
@@ -71,7 +77,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (session) fetchItems()
+if (session) { fetchItems(); fetchProfile() }
   }, [session])
 
   useEffect(() => {
@@ -82,6 +88,28 @@ export default function Home() {
     const { data } = await supabase.from('items').select('*').order('created_at', { ascending: false })
     if (data) setItems(data as Item[])
   }
+const fetchProfile = async () => {
+  if (!session) return
+  const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+  if (data) {
+    setUsername(data.username || '')
+    setTasteText(data.taste_text || '')
+  }
+}
+
+const saveUsername = async () => {
+  if (!session || !usernameInput.trim()) return
+  await supabase.from('profiles').upsert({ id: session.user.id, username: usernameInput.trim() })
+  setUsername(usernameInput.trim())
+  setEditingUsername(false)
+}
+
+const saveTaste = async () => {
+  if (!session) return
+  await supabase.from('profiles').upsert({ id: session.user.id, taste_text: tasteInput })
+  setTasteText(tasteInput)
+  setEditingTaste(false)
+}
 
   const search = async () => {
     if (!query.trim()) return
@@ -469,13 +497,29 @@ const { data } = await supabase.from('items').insert({
       {showProfile && (
         <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowProfile(false)}>
           <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3">
-              {session.user.user_metadata?.picture && <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />}
-              <div>
-                <div className="text-sm font-medium text-[#1a1a1a]">{session.user.user_metadata?.name}</div>
-                <div className="text-xs text-[#999]">{session.user.email}</div>
-              </div>
-            </div>
+<div className="flex items-center gap-3">
+  {session.user.user_metadata?.picture && <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />}
+  <div className="flex-1 min-w-0">
+    <div className="text-sm font-medium text-[#1a1a1a]">{session.user.user_metadata?.name}</div>
+    <div className="text-xs text-[#999]">{session.user.email}</div>
+    {editingUsername ? (
+      <div className="flex gap-2 mt-2">
+        <input className="flex-1 text-xs bg-[#f7f6f3] rounded-lg px-2 py-1 outline-none" placeholder="username" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} autoFocus />
+        <button onClick={saveUsername} className="text-xs bg-[#1a1a1a] text-white rounded-lg px-2 py-1">저장</button>
+        <button onClick={() => setEditingUsername(false)} className="text-xs text-[#999]">취소</button>
+      </div>
+    ) : (
+      <button onClick={() => { setEditingUsername(true); setUsernameInput(username) }} className="text-xs text-[#bbb] mt-1">
+        {username ? `@${username} →` : '+ 프로필 주소 설정'}
+      </button>
+    )}
+    {username && (
+      <div className="text-xs text-[#bbb] mt-1">
+        공개 링크: whatiwas-six.vercel.app/u/{username}
+      </div>
+    )}
+  </div>
+</div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="bg-[#f7f6f3] rounded-xl py-3">
                 <div className="text-lg font-medium">{items.filter(i => i.category === 'Books').length}</div>
