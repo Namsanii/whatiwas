@@ -609,7 +609,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                         return (
                           <div key={cat}>
                             <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                            <div className="flex gap-2 flex-wrap">
+<div className="flex gap-2">
                               {catItems.map(item => (
                                 item.cover ? (
                                   <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-24 h-24 rounded-full' : 'w-20 h-28 rounded'}`}
@@ -679,7 +679,7 @@ onClick={() => setDetailItem(item)} />
                         return (
                           <div key={cat}>
                             <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                            <div className="flex gap-2 flex-wrap">
+<div className="flex gap-2">
                               {catItems.map(item => (
                                 item.cover ? (
                                   <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-24 h-24 rounded-full' : 'w-20 h-28 rounded'}`}
