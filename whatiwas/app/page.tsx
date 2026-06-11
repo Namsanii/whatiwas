@@ -99,18 +99,19 @@ export default function Home() {
     setSaving(true)
 const now = recordDate ? new Date(recordDate) : new Date()
 
-    const { data } = await supabase.from('items').insert({
-      title: selectedContent.title,
-      subtitle: selectedContent.subtitle,
-      cover: selectedContent.cover,
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: now.getDate(),
-      category: activeCategory,
-      memo,
-      user_id: session.user.id,
-      photo_url: null,
-    }).select()
+const { data } = await supabase.from('items').insert({
+  title: selectedContent.title,
+  subtitle: selectedContent.subtitle,
+  cover: selectedContent.cover,
+  year: now.getFullYear(),
+  month: now.getMonth() + 1,
+  day: now.getDate(),
+  category: activeCategory,
+  memo,
+  user_id: session.user.id,
+  photo_url: null,
+  created_at: now.toISOString(),
+}).select()
 
     if (data) {
       const newItem = data[0] as Item
