@@ -437,22 +437,18 @@ const { data } = await supabase.from('items').insert({
                     <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
                     <div className="space-y-3">
                       {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
-                        <div key={item.id} className="bg-white rounded-2xl border border-[#e5e5e5] overflow-hidden cursor-pointer" onClick={() => setDetailItem(item)}>
-                          {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
-                          <div className="p-4 flex gap-3 items-start">
-                            {item.cover ? (
-                              <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${item.category === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12'}`} />
-                            ) : (
-                              <div className={`bg-[#f0efe9] flex-shrink-0 ${item.category === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12 rounded'}`} />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-[#1a1a1a] truncate">{item.title}</div>
-                              <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-                              <div className="text-xs text-[#bbb] mt-1">{formatDate(item)}</div>
-                              {item.memo && <div className="text-xs text-[#777] italic mt-1">"{item.memo}"</div>}
-                            </div>
-                          </div>
-                        </div>
+<div key={item.id} className="flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer" onClick={() => setDetailItem(item)}>
+  {item.cover ? (
+    <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+  ) : (
+    <div className={`bg-[#f0efe9] flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+  )}
+  <div className="flex-1 min-w-0">
+    <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
+    <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+  </div>
+  <div className="text-xs text-[#bbb] flex-shrink-0">{formatDate(item)}</div>
+</div>
                       ))}
                     </div>
                   </div>
