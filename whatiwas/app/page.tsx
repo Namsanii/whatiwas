@@ -34,8 +34,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [showProfile, setShowProfile] = useState(false)
 
-  // 추가 플로우
-  const [step, setStep] = useState<'idle' | 'select' | 'search' | 'confirm' | 'photo'>('idle')
+  const [step, setStep] = useState<'idle' | 'camera' | 'preview' | 'search' | 'confirm'>('idle')
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
@@ -43,21 +43,18 @@ export default function Home() {
   const [selectedContent, setSelectedContent] = useState<any>(null)
   const [memo, setMemo] = useState('')
   const [saving, setSaving] = useState(false)
-  const [savedItem, setSavedItem] = useState<Item | null>(null)
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null)
-
-  // 사진
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const [detailItem, setDetailItem] = useState<Item | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingMemo, setEditingMemo] = useState('')
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null)
 
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const photoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -75,12 +72,62 @@ export default function Home() {
   }, [session])
 
   useEffect(() => {
+    if (step === 'camera') startCamera()
+    else stopCamera()
+  }, [step])
+
+  useEffect(() => {
     if (step === 'search') setTimeout(() => searchInputRef.current?.focus(), 100)
   }, [step])
 
   const fetchItems = async () => {
     const { data } = await supabase.from('items').select('*').order('created_at', { ascending: false })
     if (data) setItems(data as Item[])
+  }
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+    } catch (e) {
+      setStep('idle')
+      fileInputRef.current?.click()
+    }
+  }
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+  }
+
+  const takePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setCapturedPhoto(dataUrl)
+    setStep('preview')
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setCapturedPhoto(ev.target?.result as string)
+      setStep('preview')
+    }
+    reader.readAsDataURL(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const search = async () => {
@@ -94,10 +141,23 @@ export default function Home() {
     setSearching(false)
   }
 
+  const uploadPhoto = async (dataUrl: string): Promise<string | null> => {
+    if (!session) return null
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
+    const path = `public/${session.user.id}/moment_${Date.now()}.jpg`
+    const { error } = await supabase.storage.from('photo').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+    if (error) return null
+    const { data } = supabase.storage.from('photo').getPublicUrl(path)
+    return data.publicUrl
+  }
+
   const saveItem = async () => {
     if (!selectedContent || !session || saving) return
     setSaving(true)
     const now = new Date()
+    let photoUrl = null
+    if (capturedPhoto) photoUrl = await uploadPhoto(capturedPhoto)
 
     const { data } = await supabase.from('items').insert({
       title: selectedContent.title,
@@ -109,63 +169,22 @@ export default function Home() {
       category: activeCategory,
       memo,
       user_id: session.user.id,
-      photo_url: null,
+      photo_url: photoUrl,
     }).select()
 
     if (data) {
-      const newItem = data[0] as Item
-      setItems(prev => [newItem, ...prev])
-      setSavedItem(newItem)
+      setItems(prev => [data[0] as Item, ...prev])
       setSavedFeedback(selectedContent.title)
       setTimeout(() => setSavedFeedback(null), 2500)
-      setStep('photo') // 사진 추가 옵션으로
     }
 
     setSaving(false)
-    setQuery('')
-    setResults([])
-    setMemo('')
-    setSelectedContent(null)
-  }
-
-  const uploadAndAttachPhoto = async (file: File) => {
-    if (!session || !savedItem) return
-    setUploadingPhoto(true)
-
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const dataUrl = ev.target?.result as string
-      const res = await fetch(dataUrl)
-      const blob = await res.blob()
-      const path = `public/${session.user.id}/moment_${Date.now()}.jpg`
-      const { error } = await supabase.storage.from('photo').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
-      if (!error) {
-        const { data: urlData } = supabase.storage.from('photo').getPublicUrl(path)
-        const url = urlData.publicUrl
-        await supabase.from('items').update({ photo_url: url }).eq('id', savedItem.id)
-        setItems(prev => prev.map(i => i.id === savedItem.id ? { ...i, photo_url: url } : i))
-        setCapturedPhoto(dataUrl)
-      }
-      setUploadingPhoto(false)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    uploadAndAttachPhoto(file)
-    if (photoInputRef.current) photoInputRef.current.value = ''
-  }
-
-  const resetFlow = () => {
     setStep('idle')
+    setCapturedPhoto(null)
+    setSelectedContent(null)
     setQuery('')
     setResults([])
-    setSelectedContent(null)
     setMemo('')
-    setSavedItem(null)
-    setCapturedPhoto(null)
   }
 
   const allYears = [...new Set(items.map(i => new Date(i.created_at).getFullYear()))].sort((a, b) => b - a)
@@ -210,50 +229,49 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 1: 카테고리 선택 */}
-      {step === 'select' && (
-        <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={resetFlow}>
-          <div className="bg-white w-full max-w-xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-sm font-medium">무엇을 기록할까요?</span>
-              <button onClick={resetFlow} className="text-xs text-[#999]">취소</button>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => { setActiveCategory(cat); setStep('search') }}
-                  className="bg-[#f7f6f3] rounded-2xl py-6 text-sm font-medium text-[#1a1a1a] hover:bg-[#ebebeb] transition-colors"
-                >
-                  {cat === 'Books' ? '📚' : cat === 'Music' ? '🎵' : '🎬'}
-                  <div className="mt-2">{cat}</div>
-                </button>
-              ))}
-            </div>
+      {step === 'camera' && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <video ref={videoRef} className="flex-1 object-cover w-full" playsInline muted />
+          <canvas ref={canvasRef} className="hidden" />
+          <div className="absolute bottom-0 left-0 right-0 pb-12 pt-6 flex justify-center items-center gap-12 bg-gradient-to-t from-black/60">
+            <button onClick={() => { setStep('idle'); setCapturedPhoto(null) }} className="text-white text-sm opacity-70">취소</button>
+            <button onClick={takePhoto} className="w-16 h-16 rounded-full bg-white border-4 border-white/40" />
+            <button onClick={() => fileInputRef.current?.click()} className="text-white text-sm opacity-70">앨범</button>
           </div>
         </div>
       )}
 
-      {/* Step 2: 검색 */}
+      {step === 'preview' && capturedPhoto && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <img src={capturedPhoto} alt="" className="flex-1 object-cover w-full" />
+          <div className="absolute bottom-0 left-0 right-0 pb-12 pt-6 px-6 flex gap-3 bg-gradient-to-t from-black/60">
+            <button onClick={() => setStep('camera')} className="flex-1 text-sm text-white py-3 rounded-2xl border border-white/30">다시 찍기</button>
+            <button onClick={() => setStep('search')} className="flex-1 text-sm bg-white text-[#1a1a1a] py-3 rounded-2xl font-medium">이 순간 기록하기</button>
+          </div>
+        </div>
+      )}
+
       {step === 'search' && (
         <div className="fixed inset-0 bg-[#f7f6f3] z-50 flex flex-col">
-          <div className="p-6 flex flex-col gap-4 flex-1 overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <button onClick={() => setStep('select')} className="text-xs text-[#999]">← 뒤로</button>
-              <button onClick={resetFlow} className="text-xs text-[#999]">취소</button>
+          {capturedPhoto && (
+            <div className="h-48 overflow-hidden flex-shrink-0">
+              <img src={capturedPhoto} alt="" className="w-full h-full object-cover opacity-60" />
             </div>
-            <div className="text-sm font-medium text-[#1a1a1a]">
-              {activeCategory === 'Books' ? '어떤 책이에요?' : activeCategory === 'Music' ? '어떤 노래예요?' : '어떤 영화예요?'}
+          )}
+          <div className="flex-1 bg-[#f7f6f3] rounded-t-3xl -mt-6 p-6 flex flex-col gap-4 overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <div className="text-sm font-medium text-[#1a1a1a]">무엇을 경험했어요?</div>
+              <button onClick={() => { setStep('idle'); setCapturedPhoto(null); setQuery(''); setResults([]) }} className="text-xs text-[#999]">취소</button>
             </div>
             <div className="flex gap-2">
-              <input
-                ref={searchInputRef}
-                className="flex-1 text-sm bg-white rounded-xl px-4 py-3 outline-none placeholder:text-[#bbb] border border-[#e5e5e5]"
-                placeholder={activeCategory === 'Books' ? '책 제목...' : activeCategory === 'Music' ? '곡 제목...' : '영화 제목...'}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && search()}
-              />
+              {categories.map(cat => (
+                <button key={cat} onClick={() => { setActiveCategory(cat); setQuery(''); setResults([]) }} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${activeCategory === cat ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input ref={searchInputRef} className="flex-1 text-sm bg-white rounded-xl px-4 py-3 outline-none placeholder:text-[#bbb] border border-[#e5e5e5]" placeholder={activeCategory === 'Books' ? '책 제목...' : activeCategory === 'Music' ? '곡 제목...' : '영화 제목...'} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} />
               <button onClick={search} className="text-sm bg-[#1a1a1a] text-white rounded-xl px-4 py-3">{searching ? '...' : 'Search'}</button>
             </div>
             {results.length > 0 && (
@@ -277,14 +295,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 3: 확인 및 메모 */}
       {step === 'confirm' && selectedContent && (
         <div className="fixed inset-0 bg-[#f7f6f3] z-50 flex flex-col">
-          <div className="p-6 flex flex-col gap-4 flex-1">
-            <div className="flex justify-between items-center">
-              <button onClick={() => setStep('search')} className="text-xs text-[#999]">← 뒤로</button>
-              <button onClick={resetFlow} className="text-xs text-[#999]">취소</button>
+          {capturedPhoto && (
+            <div className="h-64 overflow-hidden flex-shrink-0 relative">
+              <img src={capturedPhoto} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#f7f6f3] to-transparent" />
             </div>
+          )}
+          <div className="flex-1 p-6 flex flex-col gap-4 -mt-8 relative">
             <div className="bg-white rounded-2xl border border-[#e5e5e5] p-4 flex gap-4 items-center">
               {selectedContent.cover ? (
                 <img src={selectedContent.cover} alt="" className={`object-cover rounded-lg flex-shrink-0 ${activeCategory === 'Music' ? 'w-14 h-14 rounded-full' : 'w-12 h-16'}`} />
@@ -297,54 +316,14 @@ export default function Home() {
                 <div className="text-xs text-[#bbb] mt-1">{activeCategory} · {new Date().toLocaleDateString('ko-KR')}</div>
               </div>
             </div>
-            <textarea
-              className="w-full text-sm bg-white rounded-xl px-4 py-3 outline-none resize-none border border-[#e5e5e5] placeholder:text-[#bbb]"
-              rows={3}
-              placeholder="그 순간을 기록해요... (선택)"
-              value={memo}
-              onChange={e => setMemo(e.target.value)}
-            />
-            <div className="mt-auto">
-              <button onClick={saveItem} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">
-                {saving ? '저장 중...' : '기록하기'}
-              </button>
+            <textarea className="w-full text-sm bg-white rounded-xl px-4 py-3 outline-none resize-none border border-[#e5e5e5] placeholder:text-[#bbb]" rows={3} placeholder="그 순간을 기록해요... (선택)" value={memo} onChange={e => setMemo(e.target.value)} />
+            <div className="flex gap-3 mt-auto">
+              <button onClick={() => setStep('search')} className="flex-1 text-sm text-[#999] py-3 rounded-2xl border border-[#e5e5e5]">다시 검색</button>
+              <button onClick={saveItem} className="flex-1 text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">{saving ? '저장 중...' : '기록하기'}</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Step 4: 사진 추가 (선택) */}
-      {step === 'photo' && (
-        <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50">
-          <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 space-y-4">
-            {capturedPhoto ? (
-              <div>
-                <img src={capturedPhoto} alt="" className="w-full h-48 object-cover rounded-2xl mb-4" />
-                <div className="text-sm text-center text-[#999] mb-4">사진이 추가됐어요</div>
-                <button onClick={resetFlow} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl">완료</button>
-              </div>
-            ) : (
-              <div>
-                <div className="text-sm font-medium text-[#1a1a1a] mb-1">사진도 남길까요?</div>
-                <div className="text-xs text-[#999] mb-6">그 순간의 장면을 기록할 수 있어요.</div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => photoInputRef.current?.click()}
-                    className="flex-1 text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl"
-                  >
-                    {uploadingPhoto ? '업로드 중...' : '📷 사진 추가'}
-                  </button>
-                  <button onClick={resetFlow} className="flex-1 text-sm text-[#999] py-3 rounded-2xl border border-[#e5e5e5]">
-                    건너뛰기
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <input ref={photoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelect} />
 
       <div className="max-w-2xl mx-auto px-6 py-10">
         <div className="mb-6">
@@ -388,10 +367,9 @@ export default function Home() {
                             <div key={cat} className="flex gap-1 flex-wrap">
                               {catItems.map(item => (
                                 item.cover ? (
-className={`object-cover ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-22 rounded'}`}
+                                  <img key={item.id} src={item.cover} alt="" className={`object-cover ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-22 rounded'}`} />
                                 ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-22 rounded'}`}
- />
+                                  <div key={item.id} className={`bg-[#f0efe9] ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-6 h-22 rounded'}`} />
                                 )
                               ))}
                             </div>
@@ -446,8 +424,8 @@ className={`object-cover ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-6 py-3 flex justify-between items-center">
-        <button onClick={() => setStep('select')} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">
-          + 기록하기
+        <button onClick={() => setStep('camera')} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">
+          📷 기록하기
         </button>
         <button onClick={() => setShowProfile(true)} className="flex items-center gap-2">
           {session.user.user_metadata?.picture && (
@@ -455,6 +433,8 @@ className={`object-cover ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-
           )}
         </button>
       </div>
+
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
 
       {showProfile && (
         <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowProfile(false)}>
@@ -497,7 +477,7 @@ className={`object-cover ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => { setDetailItem(null); setEditingId(null) }}>
           <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden mx-4" onClick={e => e.stopPropagation()}>
             {detailItem.photo_url && (
-              <img src={detailItem.photo_url} alt="" className="w-full h-48 object-cover" onClick={() => setLightboxPhoto(detailItem.photo_url!)} />
+              <img src={detailItem.photo_url} alt="" className="w-full h-48 object-cover" />
             )}
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
