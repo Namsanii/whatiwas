@@ -388,9 +388,10 @@ export default function Home() {
                             <div key={cat} className="flex gap-1 flex-wrap">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={`object-cover ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-11 rounded'}`} />
+className={`object-cover ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-22 rounded'}`}
                                 ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-11 rounded'}`} />
+                                  <div key={item.id} className={`bg-[#f0efe9] ${cat === 'Music' ? 'w-20 h-20 rounded-full' : 'w-16 h-22 rounded'}`}
+ />
                                 )
                               ))}
                             </div>
