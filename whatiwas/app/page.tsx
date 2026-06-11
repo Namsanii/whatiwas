@@ -33,13 +33,14 @@ export default function Home() {
   const [items, setItems] = useState<Item[]>([])
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [showProfile, setShowProfile] = useState(false)
-  const [username, setUsername] = useState('')
-const [editingUsername, setEditingUsername] = useState(false)
-const [usernameInput, setUsernameInput] = useState('')
-const [tasteText, setTasteText] = useState('')
-const [editingTaste, setEditingTaste] = useState(false)
-const [tasteInput, setTasteInput] = useState('')
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
+
+  const [username, setUsername] = useState('')
+  const [editingUsername, setEditingUsername] = useState(false)
+  const [usernameInput, setUsernameInput] = useState('')
+  const [tasteText, setTasteText] = useState('')
+  const [editingTaste, setEditingTaste] = useState(false)
+  const [tasteInput, setTasteInput] = useState('')
 
   const [step, setStep] = useState<'idle' | 'select' | 'search' | 'confirm' | 'photo'>('idle')
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
@@ -48,9 +49,8 @@ const [tasteInput, setTasteInput] = useState('')
   const [searching, setSearching] = useState(false)
   const [selectedContent, setSelectedContent] = useState<any>(null)
   const [memo, setMemo] = useState('')
-  const [saving, setSaving] = useState(false)
   const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0])
-
+  const [saving, setSaving] = useState(false)
   const [savedItem, setSavedItem] = useState<Item | null>(null)
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null)
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
@@ -77,7 +77,7 @@ const [tasteInput, setTasteInput] = useState('')
   }, [])
 
   useEffect(() => {
-if (session) { fetchItems(); fetchProfile() }
+    if (session) { fetchItems(); fetchProfile() }
   }, [session])
 
   useEffect(() => {
@@ -88,28 +88,29 @@ if (session) { fetchItems(); fetchProfile() }
     const { data } = await supabase.from('items').select('*').order('created_at', { ascending: false })
     if (data) setItems(data as Item[])
   }
-const fetchProfile = async () => {
-  if (!session) return
-  const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-  if (data) {
-    setUsername(data.username || '')
-    setTasteText(data.taste_text || '')
+
+  const fetchProfile = async () => {
+    if (!session) return
+    const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+    if (data) {
+      setUsername(data.username || '')
+      setTasteText(data.taste_text || '')
+    }
   }
-}
 
-const saveUsername = async () => {
-  if (!session || !usernameInput.trim()) return
-  await supabase.from('profiles').upsert({ id: session.user.id, username: usernameInput.trim() })
-  setUsername(usernameInput.trim())
-  setEditingUsername(false)
-}
+  const saveUsername = async () => {
+    if (!session || !usernameInput.trim()) return
+    await supabase.from('profiles').upsert({ id: session.user.id, username: usernameInput.trim() })
+    setUsername(usernameInput.trim())
+    setEditingUsername(false)
+  }
 
-const saveTaste = async () => {
-  if (!session) return
-  await supabase.from('profiles').upsert({ id: session.user.id, taste_text: tasteInput })
-  setTasteText(tasteInput)
-  setEditingTaste(false)
-}
+  const saveTaste = async () => {
+    if (!session) return
+    await supabase.from('profiles').upsert({ id: session.user.id, taste_text: tasteInput })
+    setTasteText(tasteInput)
+    setEditingTaste(false)
+  }
 
   const search = async () => {
     if (!query.trim()) return
@@ -125,25 +126,25 @@ const saveTaste = async () => {
   const saveItem = async () => {
     if (!selectedContent || !session || saving) return
     setSaving(true)
-const now = recordDate ? new Date(recordDate) : new Date()
+    const now = recordDate ? new Date(recordDate) : new Date()
 
-const { data } = await supabase.from('items').insert({
-  title: selectedContent.title,
-  subtitle: selectedContent.subtitle,
-  cover: selectedContent.cover,
-  year: now.getFullYear(),
-  month: now.getMonth() + 1,
-  day: now.getDate(),
-  category: activeCategory,
-  memo,
-  user_id: session.user.id,
-  photo_url: null,
-  created_at: now.toISOString(),
-}).select()
+    const { data } = await supabase.from('items').insert({
+      title: selectedContent.title,
+      subtitle: selectedContent.subtitle,
+      cover: selectedContent.cover,
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      category: activeCategory,
+      memo,
+      user_id: session.user.id,
+      photo_url: null,
+      created_at: now.toISOString(),
+    }).select()
 
     if (data) {
       const newItem = data[0] as Item
-      setItems(prev => [newItem, ...prev])
+      setItems(prev => [newItem, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
       setSavedItem(newItem)
       setSavedFeedback(selectedContent.title)
       setTimeout(() => setSavedFeedback(null), 2500)
@@ -155,6 +156,7 @@ const { data } = await supabase.from('items').insert({
     setResults([])
     setMemo('')
     setSelectedContent(null)
+    setRecordDate(new Date().toISOString().split('T')[0])
   }
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,6 +195,7 @@ const { data } = await supabase.from('items').insert({
     setMemo('')
     setSavedItem(null)
     setCapturedPhoto(null)
+    setRecordDate(new Date().toISOString().split('T')[0])
   }
 
   const allYears = [...new Set(items.map(i => new Date(i.created_at).getFullYear()))].sort((a, b) => b - a)
@@ -251,7 +254,7 @@ const { data } = await supabase.from('items').insert({
               return (
                 <div key={cat} className="mb-10">
                   <div className="text-xs font-medium text-[#bbb] tracking-wider mb-4">{cat.toUpperCase()}</div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {catItems.map(item => (
                       <div key={item.id} className="bg-white rounded-2xl border border-[#e5e5e5] overflow-hidden cursor-pointer" onClick={() => { setSelectedYear(null); setDetailItem(item) }}>
                         {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
@@ -348,13 +351,13 @@ const { data } = await supabase.from('items').insert({
               <div>
                 <div className="text-sm font-medium text-[#1a1a1a]">{selectedContent.title}</div>
                 <div className="text-xs text-[#999] mt-1">{selectedContent.subtitle}</div>
-                <div className="text-xs text-[#bbb] mt-1">{activeCategory} · {new Date().toLocaleDateString('ko-KR')}</div>
+                <div className="text-xs text-[#bbb] mt-1">{activeCategory}</div>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-white rounded-xl border border-[#e5e5e5] px-4 py-3">
-  <div className="text-xs text-[#999] flex-shrink-0">기록 날짜</div>
-  <input type="date" className="flex-1 text-sm text-[#1a1a1a] outline-none bg-transparent" value={recordDate} onChange={e => setRecordDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
-</div>
+              <div className="text-xs text-[#999] flex-shrink-0">기록 날짜</div>
+              <input type="date" className="flex-1 text-sm text-[#1a1a1a] outline-none bg-transparent" value={recordDate} onChange={e => setRecordDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+            </div>
             <textarea className="w-full text-sm bg-white rounded-xl px-4 py-3 outline-none resize-none border border-[#e5e5e5] placeholder:text-[#bbb]" rows={3} placeholder="그 순간을 기록해요... (선택)" value={memo} onChange={e => setMemo(e.target.value)} />
             <div className="mt-auto">
               <button onClick={saveItem} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">{saving ? '저장 중...' : '기록하기'}</button>
@@ -403,30 +406,35 @@ const { data } = await supabase.from('items').insert({
 
         {activeTab === 'profile' && (
           <div className="space-y-4">
-            {items.length < 3 ? (
-              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-8 text-center">
-                <div className="text-sm text-[#999] mb-1">Add at least 3 items</div>
-                <div className="text-xs text-[#bbb]">to see your taste profile</div>
+            {/* YOUR TASTE */}
+            <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
+              <div className="flex justify-between items-center mb-3">
+                <div className="text-xs text-[#bbb] font-medium tracking-wider">YOUR TASTE</div>
+                <button onClick={() => { setEditingTaste(true); setTasteInput(tasteText) }} className="text-xs text-[#bbb] hover:text-[#555]">편집</button>
               </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
-                <div className="text-xs text-[#bbb] font-medium mb-3 tracking-wider">YOUR TASTE</div>
-                <div className="text-sm text-[#1a1a1a] leading-relaxed">
-                  {items.filter(i => i.category === 'Books').length}권의 책, {items.filter(i => i.category === 'Music').length}곡의 음악, {items.filter(i => i.category === 'Movies').length}편의 영화를 기록했어요.
+              {editingTaste ? (
+                <div className="space-y-2">
+                  <textarea className="w-full text-sm bg-[#f7f6f3] rounded-xl px-3 py-2 outline-none resize-none" rows={3} value={tasteInput} onChange={e => setTasteInput(e.target.value)} autoFocus placeholder="나의 취향을 소개해요..." />
+                  <div className="flex gap-2">
+                    <button onClick={saveTaste} className="flex-1 text-xs bg-[#1a1a1a] text-white rounded-lg py-2">저장</button>
+                    <button onClick={() => setEditingTaste(false)} className="flex-1 text-xs text-[#999] rounded-lg py-2 border border-[#e5e5e5]">취소</button>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-sm text-[#1a1a1a] leading-relaxed">
+                  {tasteText || <span className="text-[#bbb]">나의 취향을 소개해보세요.</span>}
+                </div>
+              )}
+            </div>
 
+            {/* ACROSS THE YEARS */}
             {allYears.length > 0 && (
               <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
-                <div className="text-xs text-[#bbb] font-medium mb-4 tracking-wider">ACROSS THE YEARS</div>
-<div className="flex flex-col gap-8">
+                <div className="text-xs text-[#bbb] font-medium mb-6 tracking-wider">ACROSS THE YEARS</div>
+                <div className="flex flex-col gap-8">
                   {allYears.map(y => (
-                    <div key={y} className="flex-shrink-0">
-                      <div
-                        className="text-xs font-medium text-[#999] mb-3 cursor-pointer hover:text-[#1a1a1a] transition-colors"
-                        onClick={() => setSelectedYear(y)}
-                      >
+                    <div key={y}>
+                      <div className="text-xs font-medium text-[#999] mb-3 cursor-pointer hover:text-[#1a1a1a] transition-colors" onClick={() => setSelectedYear(y)}>
                         {y} →
                       </div>
                       <div className="space-y-2">
@@ -434,7 +442,7 @@ const { data } = await supabase.from('items').insert({
                           const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
                           if (catItems.length === 0) return null
                           return (
-                            <div key={cat} className="flex gap-1 flex-wrap">
+                            <div key={cat} className="flex gap-2 flex-wrap">
                               {catItems.map(item => (
                                 item.cover ? (
                                   <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setSelectedYear(y)} />
@@ -463,20 +471,20 @@ const { data } = await supabase.from('items').insert({
                 {allYears.map(y => (
                   <div key={y}>
                     <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
-                    <div className="space-y-3">
+                    <div className="space-y-1">
                       {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
-<div key={item.id} className="flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer" onClick={() => setDetailItem(item)}>
-  {item.cover ? (
-    <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
-  ) : (
-    <div className={`bg-[#f0efe9] flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
-  )}
-  <div className="flex-1 min-w-0">
-    <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
-    <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-  </div>
-  <div className="text-xs text-[#bbb] flex-shrink-0">{formatDate(item)}</div>
-</div>
+                        <div key={item.id} className="flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer" onClick={() => setDetailItem(item)}>
+                          {item.cover ? (
+                            <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+                          ) : (
+                            <div className={`bg-[#f0efe9] flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
+                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+                          </div>
+                          <div className="text-xs text-[#bbb] flex-shrink-0">{formatDate(item)}</div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -497,29 +505,27 @@ const { data } = await supabase.from('items').insert({
       {showProfile && (
         <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowProfile(false)}>
           <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-<div className="flex items-center gap-3">
-  {session.user.user_metadata?.picture && <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />}
-  <div className="flex-1 min-w-0">
-    <div className="text-sm font-medium text-[#1a1a1a]">{session.user.user_metadata?.name}</div>
-    <div className="text-xs text-[#999]">{session.user.email}</div>
-    {editingUsername ? (
-      <div className="flex gap-2 mt-2">
-        <input className="flex-1 text-xs bg-[#f7f6f3] rounded-lg px-2 py-1 outline-none" placeholder="username" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} autoFocus />
-        <button onClick={saveUsername} className="text-xs bg-[#1a1a1a] text-white rounded-lg px-2 py-1">저장</button>
-        <button onClick={() => setEditingUsername(false)} className="text-xs text-[#999]">취소</button>
-      </div>
-    ) : (
-      <button onClick={() => { setEditingUsername(true); setUsernameInput(username) }} className="text-xs text-[#bbb] mt-1">
-        {username ? `@${username} →` : '+ 프로필 주소 설정'}
-      </button>
-    )}
-    {username && (
-      <div className="text-xs text-[#bbb] mt-1">
-        공개 링크: whatiwas-six.vercel.app/u/{username}
-      </div>
-    )}
-  </div>
-</div>
+            <div className="flex items-center gap-3">
+              {session.user.user_metadata?.picture && <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-[#1a1a1a]">{session.user.user_metadata?.name}</div>
+                <div className="text-xs text-[#999]">{session.user.email}</div>
+                {editingUsername ? (
+                  <div className="flex gap-2 mt-2">
+                    <input className="flex-1 text-xs bg-[#f7f6f3] rounded-lg px-2 py-1 outline-none" placeholder="username" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} autoFocus />
+                    <button onClick={saveUsername} className="text-xs bg-[#1a1a1a] text-white rounded-lg px-2 py-1">저장</button>
+                    <button onClick={() => setEditingUsername(false)} className="text-xs text-[#999]">취소</button>
+                  </div>
+                ) : (
+                  <button onClick={() => { setEditingUsername(true); setUsernameInput(username) }} className="text-xs text-[#bbb] mt-1 block">
+                    {username ? `@${username} →` : '+ 프로필 주소 설정'}
+                  </button>
+                )}
+                {username && !editingUsername && (
+                  <div className="text-xs text-[#bbb] mt-1">whatiwas-six.vercel.app/u/{username}</div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="bg-[#f7f6f3] rounded-xl py-3">
                 <div className="text-lg font-medium">{items.filter(i => i.category === 'Books').length}</div>
