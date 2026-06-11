@@ -33,6 +33,7 @@ export default function Home() {
   const [items, setItems] = useState<Item[]>([])
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [showProfile, setShowProfile] = useState(false)
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   const [step, setStep] = useState<'idle' | 'select' | 'search' | 'confirm' | 'photo'>('idle')
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
@@ -205,6 +206,47 @@ export default function Home() {
         </div>
       )}
 
+      {/* 연도별 상세 */}
+      {selectedYear && (
+        <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-6 py-10 w-full">
+            <div className="flex justify-between items-center mb-8">
+              <div className="text-xl font-medium text-[#1a1a1a]">{selectedYear}</div>
+              <button onClick={() => setSelectedYear(null)} className="text-xs text-[#999]">닫기</button>
+            </div>
+            {categories.map(cat => {
+              const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === selectedYear)
+              if (catItems.length === 0) return null
+              return (
+                <div key={cat} className="mb-10">
+                  <div className="text-xs font-medium text-[#bbb] tracking-wider mb-4">{cat.toUpperCase()}</div>
+                  <div className="space-y-3">
+                    {catItems.map(item => (
+                      <div key={item.id} className="bg-white rounded-2xl border border-[#e5e5e5] overflow-hidden cursor-pointer" onClick={() => { setSelectedYear(null); setDetailItem(item) }}>
+                        {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
+                        <div className="p-4 flex gap-3 items-start">
+                          {item.cover ? (
+                            <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12'}`} />
+                          ) : (
+                            <div className={`bg-[#f0efe9] flex-shrink-0 ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12 rounded'}`} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-[#1a1a1a] truncate">{item.title}</div>
+                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+                            <div className="text-xs text-[#bbb] mt-1">{formatDate(item)}</div>
+                            {item.memo && <div className="text-xs text-[#777] italic mt-1">"{item.memo}"</div>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {step === 'select' && (
         <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={resetFlow}>
           <div className="bg-white w-full max-w-xl rounded-t-2xl p-6" onClick={e => e.stopPropagation()}>
@@ -346,7 +388,12 @@ export default function Home() {
                 <div className="flex gap-6 overflow-x-auto pb-1">
                   {allYears.map(y => (
                     <div key={y} className="flex-shrink-0">
-                      <div className="text-xs font-medium text-[#999] mb-3">{y}</div>
+                      <div
+                        className="text-xs font-medium text-[#999] mb-3 cursor-pointer hover:text-[#1a1a1a] transition-colors"
+                        onClick={() => setSelectedYear(y)}
+                      >
+                        {y} →
+                      </div>
                       <div className="space-y-2">
                         {categories.map(cat => {
                           const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
@@ -355,9 +402,9 @@ export default function Home() {
                             <div key={cat} className="flex gap-1 flex-wrap">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={`object-cover ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} />
+                                  <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setSelectedYear(y)} />
                                 ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} />
+                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setSelectedYear(y)} />
                                 )
                               ))}
                             </div>
@@ -384,9 +431,7 @@ export default function Home() {
                     <div className="space-y-3">
                       {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
                         <div key={item.id} className="bg-white rounded-2xl border border-[#e5e5e5] overflow-hidden cursor-pointer" onClick={() => setDetailItem(item)}>
-                          {item.photo_url && (
-                            <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />
-                          )}
+                          {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
                           <div className="p-4 flex gap-3 items-start">
                             {item.cover ? (
                               <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${item.category === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12'}`} />
@@ -412,13 +457,9 @@ export default function Home() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-6 py-3 flex justify-between items-center">
-        <button onClick={() => setStep('select')} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">
-          + 기록하기
-        </button>
+        <button onClick={() => setStep('select')} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">+ 기록하기</button>
         <button onClick={() => setShowProfile(true)} className="flex items-center gap-2">
-          {session.user.user_metadata?.picture && (
-            <img src={session.user.user_metadata.picture} alt="" className="w-7 h-7 rounded-full" />
-          )}
+          {session.user.user_metadata?.picture && <img src={session.user.user_metadata.picture} alt="" className="w-7 h-7 rounded-full" />}
         </button>
       </div>
 
@@ -426,9 +467,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/20 flex items-end justify-center z-50" onClick={() => setShowProfile(false)}>
           <div className="bg-white w-full max-w-xl rounded-t-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
-              {session.user.user_metadata?.picture && (
-                <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />
-              )}
+              {session.user.user_metadata?.picture && <img src={session.user.user_metadata.picture} alt="" className="w-12 h-12 rounded-full" />}
               <div>
                 <div className="text-sm font-medium text-[#1a1a1a]">{session.user.user_metadata?.name}</div>
                 <div className="text-xs text-[#999]">{session.user.email}</div>
@@ -462,9 +501,7 @@ export default function Home() {
       {detailItem && (
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50" onClick={() => { setDetailItem(null); setEditingId(null) }}>
           <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden mx-4" onClick={e => e.stopPropagation()}>
-            {detailItem.photo_url && (
-              <img src={detailItem.photo_url} alt="" className="w-full h-48 object-cover cursor-pointer" onClick={() => setLightboxPhoto(detailItem.photo_url!)} />
-            )}
+            {detailItem.photo_url && <img src={detailItem.photo_url} alt="" className="w-full h-48 object-cover cursor-pointer" onClick={() => setLightboxPhoto(detailItem.photo_url!)} />}
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4 items-start">
