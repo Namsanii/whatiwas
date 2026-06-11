@@ -27,12 +27,26 @@ type Item = {
   photo_url?: string
 }
 
+type Snapshot = {
+  id: string
+  user_id: string
+  year: number
+  month: number
+  items: Item[]
+}
+
 export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [editingSnapshot, setEditingSnapshot] = useState<Snapshot | null>(null)
+  const [creatingSnapshot, setCreatingSnapshot] = useState(false)
+  const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
+  const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
+  const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
+
   const [featuredIds, setFeaturedIds] = useState<string[]>([])
-  const [editingFeatured, setEditingFeatured] = useState(false)
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [archiveView, setArchiveView] = useState<'list' | 'grid'>('list')
   const [showProfile, setShowProfile] = useState(false)
@@ -80,7 +94,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (session) { fetchItems(); fetchProfile(); fetchFeatured() }
+    if (session) { fetchItems(); fetchProfile(); fetchFeatured(); fetchSnapshots() }
   }, [session])
 
   useEffect(() => {
@@ -107,25 +121,76 @@ export default function Home() {
     if (data) setFeaturedIds(data.map((f: any) => String(f.item_id)))
   }
 
-  const toggleFeatured = async (item: Item) => {
+  const fetchSnapshots = async () => {
     if (!session) return
+    const { data: snapshotData } = await supabase
+      .from('snapshots')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('year', { ascending: false })
+    if (!snapshotData) return
+
+    const result: Snapshot[] = []
+    for (const s of snapshotData) {
+      const { data: siData } = await supabase
+        .from('snapshot_items')
+        .select('item_id')
+        .eq('snapshot_id', s.id)
+      const itemIds = siData?.map((si: any) => String(si.item_id)) || []
+      const snapshotItems = items.filter(i => itemIds.includes(String(i.id)))
+      result.push({ ...s, items: snapshotItems })
+    }
+    setSnapshots(result)
+  }
+
+  const createSnapshot = async () => {
+    if (!session) return
+    const { data } = await supabase.from('snapshots').insert({
+      user_id: session.user.id,
+      year: newSnapshotYear,
+      month: newSnapshotMonth,
+    }).select()
+    if (!data) return
+    const snapshotId = data[0].id
+
+    for (const itemId of snapshotPickIds) {
+      await supabase.from('snapshot_items').insert({
+        snapshot_id: snapshotId,
+        item_id: itemId,
+        user_id: session.user.id,
+      })
+    }
+
+    const newSnapshot: Snapshot = {
+      ...data[0],
+      items: items.filter(i => snapshotPickIds.includes(String(i.id)))
+    }
+    setSnapshots(prev => [newSnapshot, ...prev].sort((a, b) => b.year - a.year || b.month - a.month))
+    setCreatingSnapshot(false)
+    setSnapshotPickIds([])
+  }
+
+  const deleteSnapshot = async (id: string) => {
+    await supabase.from('snapshots').delete().eq('id', id)
+    setSnapshots(prev => prev.filter(s => String(s.id) !== id))
+  }
+
+  const toggleSnapshotPick = (item: Item) => {
     const id = String(item.id)
     const cat = item.category
-    const currentCatFeatured = featuredIds.filter(fid => {
-      const found = items.find(i => String(i.id) === fid)
+    const currentCat = snapshotPickIds.filter(pid => {
+      const found = items.find(i => String(i.id) === pid)
       return found?.category === cat
     })
 
-    if (featuredIds.includes(id)) {
-      await supabase.from('featured_items').delete().eq('user_id', session.user.id).eq('item_id', item.id)
-      setFeaturedIds(prev => prev.filter(fid => fid !== id))
+    if (snapshotPickIds.includes(id)) {
+      setSnapshotPickIds(prev => prev.filter(pid => pid !== id))
     } else {
-      if (currentCatFeatured.length >= 3) {
+      if (currentCat.length >= 3) {
         alert(`${cat}는 최대 3개까지 선택할 수 있어요.`)
         return
       }
-      await supabase.from('featured_items').insert({ user_id: session.user.id, item_id: item.id })
-      setFeaturedIds(prev => [...prev, id])
+      setSnapshotPickIds(prev => [...prev, id])
     }
   }
 
@@ -237,6 +302,8 @@ export default function Home() {
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
   }
 
+  const monthName = (month: number) => `${month}월`
+
   const saveMemo = async (id: string) => {
     await supabase.from('items').update({ memo: editingMemo }).eq('id', id)
     setItems(prev => prev.map(i => i.id === id ? { ...i, memo: editingMemo } : i))
@@ -272,19 +339,33 @@ export default function Home() {
         </div>
       )}
 
-      {/* Featured 편집 모달 */}
-      {editingFeatured && (
+      {/* 스냅샷 생성 모달 */}
+      {creatingSnapshot && (
         <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-6 py-10">
             <div className="flex justify-between items-center mb-2">
-              <div className="text-sm font-medium text-[#1a1a1a]">프로필에 보여줄 것들</div>
-              <button onClick={() => setEditingFeatured(false)} className="text-xs text-[#999]">완료</button>
+              <div className="text-sm font-medium text-[#1a1a1a]">스냅샷 추가</div>
+              <button onClick={() => { setCreatingSnapshot(false); setSnapshotPickIds([]) }} className="text-xs text-[#999]">취소</button>
             </div>
-            <div className="text-xs text-[#bbb] mb-8">카테고리별 최대 3개씩 선택할 수 있어요.</div>
+            <div className="text-xs text-[#bbb] mb-6">시기를 선택하고 보여줄 것들을 골라요.</div>
+
+            <div className="flex gap-3 mb-8">
+              <select className="flex-1 text-sm bg-white rounded-xl border border-[#e5e5e5] px-3 py-2 outline-none" value={newSnapshotYear} onChange={e => setNewSnapshotYear(parseInt(e.target.value))}>
+                {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <option key={y} value={y}>{y}년</option>
+                ))}
+              </select>
+              <select className="flex-1 text-sm bg-white rounded-xl border border-[#e5e5e5] px-3 py-2 outline-none" value={newSnapshotMonth} onChange={e => setNewSnapshotMonth(parseInt(e.target.value))}>
+                {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                  <option key={m} value={m}>{m}월</option>
+                ))}
+              </select>
+            </div>
+
             {categories.map(cat => {
               const catItems = items.filter(i => i.category === cat)
               if (catItems.length === 0) return null
-              const selectedCount = catItems.filter(i => featuredIds.includes(String(i.id))).length
+              const selectedCount = catItems.filter(i => snapshotPickIds.includes(String(i.id))).length
               return (
                 <div key={cat} className="mb-10">
                   <div className="flex items-center gap-2 mb-4">
@@ -293,9 +374,9 @@ export default function Home() {
                   </div>
                   <div className="space-y-1">
                     {catItems.map(item => {
-                      const isFeatured = featuredIds.includes(String(item.id))
+                      const isPicked = snapshotPickIds.includes(String(item.id))
                       return (
-                        <div key={item.id} onClick={() => toggleFeatured(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isFeatured ? 'opacity-100' : 'opacity-50'}`}>
+                        <div key={item.id} onClick={() => toggleSnapshotPick(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isPicked ? 'opacity-100' : 'opacity-50'}`}>
                           {item.cover ? (
                             <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${cat === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
                           ) : (
@@ -305,8 +386,8 @@ export default function Home() {
                             <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
                             <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isFeatured ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-[#ddd]'}`}>
-                            {isFeatured && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isPicked ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-[#ddd]'}`}>
+                            {isPicked && <div className="w-2 h-2 rounded-full bg-white"></div>}
                           </div>
                         </div>
                       )
@@ -315,6 +396,8 @@ export default function Home() {
                 </div>
               )
             })}
+
+            <button onClick={createSnapshot} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">저장하기</button>
           </div>
         </div>
       )}
@@ -505,36 +588,44 @@ export default function Home() {
               )}
             </div>
 
-            {/* 선택된 콘텐츠 */}
-            <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
-              <div className="flex justify-between items-center mb-6">
-                <div className="text-xs text-[#bbb] font-medium tracking-wider">MY PICKS</div>
-                <button onClick={() => setEditingFeatured(true)} className="text-xs text-[#bbb] hover:text-[#555]">편집</button>
-              </div>
-              {featuredItems.length === 0 ? (
-                <div className="text-xs text-[#bbb] text-center py-4">편집 버튼을 눌러 보여줄 것들을 선택해요.</div>
-              ) : (
-                <div className="flex flex-col gap-6">
-                  {categories.map(cat => {
-                    const catFeatured = featuredItems.filter(i => i.category === cat)
-                    if (catFeatured.length === 0) return null
-                    return (
-                      <div key={cat}>
-                        <div className="text-xs text-[#bbb] mb-3">{cat}</div>
-                        <div className="flex gap-2 flex-wrap">
-                          {catFeatured.map(item => (
-                            item.cover ? (
-                              <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
-                            ) : (
-                              <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
-                            )
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })}
+            {/* 스냅샷 목록 */}
+            <div className="space-y-3">
+              {snapshots.map(snapshot => (
+                <div key={snapshot.id} className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="text-xs font-medium text-[#999]">{snapshot.year}년 {monthName(snapshot.month)}</div>
+                    <button onClick={() => deleteSnapshot(String(snapshot.id))} className="text-xs text-[#ccc] hover:text-red-400">삭제</button>
+                  </div>
+                  {snapshot.items.length === 0 ? (
+                    <div className="text-xs text-[#bbb]">선택된 항목이 없어요.</div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {categories.map(cat => {
+                        const catItems = snapshot.items.filter(i => i.category === cat)
+                        if (catItems.length === 0) return null
+                        return (
+                          <div key={cat}>
+                            <div className="text-xs text-[#bbb] mb-2">{cat}</div>
+                            <div className="flex gap-2 flex-wrap">
+                              {catItems.map(item => (
+                                item.cover ? (
+                                  <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                                ) : (
+                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                                )
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
+
+              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">
+                + 스냅샷 추가
+              </button>
             </div>
           </div>
         )}
