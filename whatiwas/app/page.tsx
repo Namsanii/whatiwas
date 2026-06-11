@@ -43,6 +43,8 @@ export default function Home() {
   const [selectedContent, setSelectedContent] = useState<any>(null)
   const [memo, setMemo] = useState('')
   const [saving, setSaving] = useState(false)
+  const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0])
+
   const [savedItem, setSavedItem] = useState<Item | null>(null)
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null)
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
@@ -95,7 +97,7 @@ export default function Home() {
   const saveItem = async () => {
     if (!selectedContent || !session || saving) return
     setSaving(true)
-    const now = new Date()
+const now = recordDate ? new Date(recordDate) : new Date()
 
     const { data } = await supabase.from('items').insert({
       title: selectedContent.title,
@@ -320,6 +322,10 @@ export default function Home() {
                 <div className="text-xs text-[#bbb] mt-1">{activeCategory} · {new Date().toLocaleDateString('ko-KR')}</div>
               </div>
             </div>
+            <div className="flex items-center gap-3 bg-white rounded-xl border border-[#e5e5e5] px-4 py-3">
+  <div className="text-xs text-[#999] flex-shrink-0">기록 날짜</div>
+  <input type="date" className="flex-1 text-sm text-[#1a1a1a] outline-none bg-transparent" value={recordDate} onChange={e => setRecordDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+</div>
             <textarea className="w-full text-sm bg-white rounded-xl px-4 py-3 outline-none resize-none border border-[#e5e5e5] placeholder:text-[#bbb]" rows={3} placeholder="그 순간을 기록해요... (선택)" value={memo} onChange={e => setMemo(e.target.value)} />
             <div className="mt-auto">
               <button onClick={saveItem} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">{saving ? '저장 중...' : '기록하기'}</button>
