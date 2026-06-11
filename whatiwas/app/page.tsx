@@ -121,7 +121,7 @@ export default function Home() {
     if (data) setFeaturedIds(data.map((f: any) => String(f.item_id)))
   }
 
-  const fetchSnapshots = async () => {
+const fetchSnapshots = async (loadedItems?: Item[]) => {
     if (!session) return
     const { data: snapshotData } = await supabase
       .from('snapshots')
@@ -130,6 +130,9 @@ export default function Home() {
       .order('year', { ascending: false })
     if (!snapshotData) return
 
+    const { data: allItemsData } = await supabase.from('items').select('*')
+    const allItems = (allItemsData || []) as Item[]
+
     const result: Snapshot[] = []
     for (const s of snapshotData) {
       const { data: siData } = await supabase
@@ -137,7 +140,7 @@ export default function Home() {
         .select('item_id')
         .eq('snapshot_id', s.id)
       const itemIds = siData?.map((si: any) => String(si.item_id)) || []
-      const snapshotItems = items.filter(i => itemIds.includes(String(i.id)))
+      const snapshotItems = allItems.filter(i => itemIds.includes(String(i.id)))
       result.push({ ...s, items: snapshotItems })
     }
     setSnapshots(result)
