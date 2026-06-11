@@ -494,34 +494,37 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-  <div className="space-y-8">
-    {allYears.map(y => (
-      <div key={y}>
-        <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
-        <div className="space-y-4">
-          {categories.map(cat => {
-            const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
-            if (catItems.length === 0) return null
-            return (
-              <div key={cat}>
-                <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                <div className="flex gap-2 flex-wrap">
-                  {catItems.map(item => (
-                    item.cover ? (
-                      <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
-                    ) : (
-                      <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
-                    )
-                  ))}
-                </div>
+              <div className="space-y-8">
+                {allYears.map(y => (
+                  <div key={y}>
+                    <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
+                    <div className="space-y-4">
+                      {categories.map(cat => {
+                        const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
+                        if (catItems.length === 0) return null
+                        return (
+                          <div key={cat}>
+                            <div className="text-xs text-[#bbb] mb-2">{cat}</div>
+                            <div className="flex gap-2 flex-wrap">
+                              {catItems.map(item => (
+                                item.cover ? (
+                                  <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                                ) : (
+                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                                )
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )
-          })}
-        </div>
+            )}
+          </div>
+        )}
       </div>
-    ))}
-  </div>
-)}
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-6 py-3 flex justify-between items-center">
         <button onClick={() => setStep('select')} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">+ 기록하기</button>
