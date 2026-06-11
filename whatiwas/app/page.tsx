@@ -392,7 +392,7 @@ const { data } = await supabase.from('items').insert({
             {allYears.length > 0 && (
               <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
                 <div className="text-xs text-[#bbb] font-medium mb-4 tracking-wider">ACROSS THE YEARS</div>
-                <div className="flex gap-6 overflow-x-auto pb-1">
+<div className="flex flex-col gap-8">
                   {allYears.map(y => (
                     <div key={y} className="flex-shrink-0">
                       <div
