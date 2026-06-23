@@ -10,7 +10,10 @@ const supabase = createClient(
 
 const categories = ['Books', 'Music', 'Movies'] as const
 
-export default function PublicProfile({ params }: { params: { username: string } }) {
+import { useParams } from 'next/navigation'
+
+export default function PublicProfile() {
+  const params = useParams()
   const [profile, setProfile] = useState<any>(null)
   const [snapshots, setSnapshots] = useState<any[]>([])
   const [currentSnapshotIdx, setCurrentSnapshotIdx] = useState(0)
@@ -24,7 +27,7 @@ export default function PublicProfile({ params }: { params: { username: string }
 
   useEffect(() => {
     const load = async () => {
-      const username = params.username
+const username = params.username as string
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', username).single()
       if (!prof) { setLoading(false); return }
       setProfile(prof)
