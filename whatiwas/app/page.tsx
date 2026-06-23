@@ -612,7 +612,8 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
 <div className="flex gap-2">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-24 h-24 rounded-full' : 'w-20 h-28 rounded'}`}
+                                  <img key={item.id} src={item.cover} alt="" className="w-20 rounded object-cover cursor-pointer"
+
 onClick={() => setDetailItem(item)} />
                                 ) : (
                                   <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${'w-14 h-14 rounded'}`} onClick={() => setDetailItem(item)} />
@@ -682,7 +683,7 @@ onClick={() => setDetailItem(item)} />
 <div className="flex gap-2">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-24 h-24 rounded-full' : 'w-20 h-28 rounded'}`}
+                                  <img key={item.id} src={item.cover} alt="" className={"w-20 rounded object-cover cursor-pointer"}
 onClick={() => setDetailItem(item)} />
                                 ) : (
                                   <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
