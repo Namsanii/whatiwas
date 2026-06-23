@@ -21,7 +21,7 @@ export default async function PublicProfile({ params }: { params: { username: st
 
   if (!profile) return (
     <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center">
-      <div className="text-sm text-[#999]">존재하지 않는 프로필이에요.</div>
+      <div className="text-sm text-[#999]">존재하지 않는 프로필이에요. (username: {params.username})</div>
     </div>
   )
 
