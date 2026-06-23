@@ -41,8 +41,8 @@ export default async function PublicProfile({ params }: { params: Promise<{ user
       .from('snapshot_items')
       .select('item_id')
       .eq('snapshot_id', s.id)
-    const itemIds = (siData || []).map((si: any) => String(si.item_id))
-    const snapshotItems = (allItems || []).filter((i: any) => itemIds.includes(String(i.id)))
+const itemIds = (siData || []).map((si: any) => Number(si.item_id))
+const snapshotItems = (allItems || []).filter((i: any) => itemIds.includes(Number(i.id)))
     snapshots.push({ ...s, items: snapshotItems })
   }
 
