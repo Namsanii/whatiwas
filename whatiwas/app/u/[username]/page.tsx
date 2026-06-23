@@ -29,7 +29,7 @@ export default function PublicProfile() {
     const load = async () => {
 const username = params.username as string
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', username).single()
-      if (!prof) { setLoading(false); return }
+if (!prof) { console.log('no profile for username:', username); setLoading(false); return }
       setProfile(prof)
 
       const { data: allItems } = await supabase.from('items').select('*').eq('user_id', prof.id)
