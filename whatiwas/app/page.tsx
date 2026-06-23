@@ -40,13 +40,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
-  const [editingSnapshot, setEditingSnapshot] = useState<Snapshot | null>(null)
   const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
   const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
   const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
 
-  const [featuredIds, setFeaturedIds] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [archiveView, setArchiveView] = useState<'list' | 'grid'>('list')
   const [showProfile, setShowProfile] = useState(false)
@@ -94,7 +92,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (session) { fetchItems(); fetchProfile(); fetchFeatured(); fetchSnapshots() }
+    if (session) { fetchItems(); fetchProfile(); fetchSnapshots() }
   }, [session])
 
   useEffect(() => {
@@ -115,30 +113,15 @@ export default function Home() {
     }
   }
 
-  const fetchFeatured = async () => {
+  const fetchSnapshots = async () => {
     if (!session) return
-    const { data } = await supabase.from('featured_items').select('item_id').eq('user_id', session.user.id)
-    if (data) setFeaturedIds(data.map((f: any) => String(f.item_id)))
-  }
-
-const fetchSnapshots = async (loadedItems?: Item[]) => {
-    if (!session) return
-    const { data: snapshotData } = await supabase
-      .from('snapshots')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('year', { ascending: false })
+    const { data: snapshotData } = await supabase.from('snapshots').select('*').eq('user_id', session.user.id).order('year', { ascending: false })
     if (!snapshotData) return
-
     const { data: allItemsData } = await supabase.from('items').select('*')
     const allItems = (allItemsData || []) as Item[]
-
     const result: Snapshot[] = []
     for (const s of snapshotData) {
-      const { data: siData } = await supabase
-        .from('snapshot_items')
-        .select('item_id')
-        .eq('snapshot_id', s.id)
+      const { data: siData } = await supabase.from('snapshot_items').select('item_id').eq('snapshot_id', s.id)
       const itemIds = siData?.map((si: any) => String(si.item_id)) || []
       const snapshotItems = allItems.filter(i => itemIds.includes(String(i.id)))
       result.push({ ...s, items: snapshotItems })
@@ -148,26 +131,13 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
 
   const createSnapshot = async () => {
     if (!session) return
-    const { data } = await supabase.from('snapshots').insert({
-      user_id: session.user.id,
-      year: newSnapshotYear,
-      month: newSnapshotMonth,
-    }).select()
+    const { data } = await supabase.from('snapshots').insert({ user_id: session.user.id, year: newSnapshotYear, month: newSnapshotMonth }).select()
     if (!data) return
     const snapshotId = data[0].id
-
     for (const itemId of snapshotPickIds) {
-      await supabase.from('snapshot_items').insert({
-        snapshot_id: snapshotId,
-        item_id: itemId,
-        user_id: session.user.id,
-      })
+      await supabase.from('snapshot_items').insert({ snapshot_id: snapshotId, item_id: itemId, user_id: session.user.id })
     }
-
-    const newSnapshot: Snapshot = {
-      ...data[0],
-      items: items.filter(i => snapshotPickIds.includes(String(i.id)))
-    }
+    const newSnapshot: Snapshot = { ...data[0], items: items.filter(i => snapshotPickIds.includes(String(i.id))) }
     setSnapshots(prev => [newSnapshot, ...prev].sort((a, b) => b.year - a.year || b.month - a.month))
     setCreatingSnapshot(false)
     setSnapshotPickIds([])
@@ -181,18 +151,11 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
   const toggleSnapshotPick = (item: Item) => {
     const id = String(item.id)
     const cat = item.category
-    const currentCat = snapshotPickIds.filter(pid => {
-      const found = items.find(i => String(i.id) === pid)
-      return found?.category === cat
-    })
-
+    const currentCat = snapshotPickIds.filter(pid => items.find(i => String(i.id) === pid)?.category === cat)
     if (snapshotPickIds.includes(id)) {
       setSnapshotPickIds(prev => prev.filter(pid => pid !== id))
     } else {
-      if (currentCat.length >= 3) {
-        alert(`${cat}는 최대 3개까지 선택할 수 있어요.`)
-        return
-      }
+      if (currentCat.length >= 3) { alert(`${cat}는 최대 3개까지 선택할 수 있어요.`); return }
       setSnapshotPickIds(prev => [...prev, id])
     }
   }
@@ -226,21 +189,11 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
     if (!selectedContent || !session || saving) return
     setSaving(true)
     const now = recordDate ? new Date(recordDate) : new Date()
-
     const { data } = await supabase.from('items').insert({
-      title: selectedContent.title,
-      subtitle: selectedContent.subtitle,
-      cover: selectedContent.cover,
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: now.getDate(),
-      category: activeCategory,
-      memo,
-      user_id: session.user.id,
-      photo_url: null,
-      created_at: now.toISOString(),
+      title: selectedContent.title, subtitle: selectedContent.subtitle, cover: selectedContent.cover,
+      year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(),
+      category: activeCategory, memo, user_id: session.user.id, photo_url: null, created_at: now.toISOString(),
     }).select()
-
     if (data) {
       const newItem = data[0] as Item
       setItems(prev => [newItem, ...prev].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
@@ -249,12 +202,8 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
       setTimeout(() => setSavedFeedback(null), 2500)
       setStep('photo')
     }
-
     setSaving(false)
-    setQuery('')
-    setResults([])
-    setMemo('')
-    setSelectedContent(null)
+    setQuery(''); setResults([]); setMemo(''); setSelectedContent(null)
     setRecordDate(new Date().toISOString().split('T')[0])
   }
 
@@ -287,25 +236,17 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
   }
 
   const resetFlow = () => {
-    setStep('idle')
-    setQuery('')
-    setResults([])
-    setSelectedContent(null)
-    setMemo('')
-    setSavedItem(null)
-    setCapturedPhoto(null)
+    setStep('idle'); setQuery(''); setResults([]); setSelectedContent(null)
+    setMemo(''); setSavedItem(null); setCapturedPhoto(null)
     setRecordDate(new Date().toISOString().split('T')[0])
   }
 
   const allYears = [...new Set(items.map(i => new Date(i.created_at).getFullYear()))].sort((a, b) => b - a)
-  const featuredItems = items.filter(i => featuredIds.includes(String(i.id)))
 
   const formatDate = (item: Item) => {
     const d = new Date(item.created_at)
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
   }
-
-  const monthName = (month: number) => `${month}월`
 
   const saveMemo = async (id: string) => {
     await supabase.from('items').update({ memo: editingMemo }).eq('id', id)
@@ -342,7 +283,6 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
         </div>
       )}
 
-      {/* 스냅샷 생성 모달 */}
       {creatingSnapshot && (
         <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-6 py-10">
@@ -351,20 +291,14 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
               <button onClick={() => { setCreatingSnapshot(false); setSnapshotPickIds([]) }} className="text-xs text-[#999]">취소</button>
             </div>
             <div className="text-xs text-[#bbb] mb-6">시기를 선택하고 보여줄 것들을 골라요.</div>
-
             <div className="flex gap-3 mb-8">
               <select className="flex-1 text-sm bg-white rounded-xl border border-[#e5e5e5] px-3 py-2 outline-none" value={newSnapshotYear} onChange={e => setNewSnapshotYear(parseInt(e.target.value))}>
-                {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(y => (
-                  <option key={y} value={y}>{y}년</option>
-                ))}
+                {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}년</option>)}
               </select>
               <select className="flex-1 text-sm bg-white rounded-xl border border-[#e5e5e5] px-3 py-2 outline-none" value={newSnapshotMonth} onChange={e => setNewSnapshotMonth(parseInt(e.target.value))}>
-                {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                  <option key={m} value={m}>{m}월</option>
-                ))}
+                {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
               </select>
             </div>
-
             {categories.map(cat => {
               const catItems = items.filter(i => i.category === cat)
               if (catItems.length === 0) return null
@@ -380,11 +314,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                       const isPicked = snapshotPickIds.includes(String(item.id))
                       return (
                         <div key={item.id} onClick={() => toggleSnapshotPick(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isPicked ? 'opacity-100' : 'opacity-50'}`}>
-                          {item.cover ? (
-                            <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${cat === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
-                          ) : (
-                            <div className={`bg-[#f0efe9] flex-shrink-0 ${cat === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
-                          )}
+                          {item.cover ? <img src={item.cover} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-[#f0efe9] flex-shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
                             <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
@@ -399,7 +329,6 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                 </div>
               )
             })}
-
             <button onClick={createSnapshot} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">저장하기</button>
           </div>
         </div>
@@ -423,11 +352,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                       <div key={item.id} className="bg-white rounded-2xl border border-[#e5e5e5] overflow-hidden cursor-pointer" onClick={() => { setSelectedYear(null); setDetailItem(item) }}>
                         {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
                         <div className="p-4 flex gap-3 items-start">
-                          {item.cover ? (
-                            <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${'w-10 h-10 rounded'}`} />
-                          ) : (
-                            <div className={`bg-[#f0efe9] flex-shrink-0 ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12 rounded'}`} />
-                          )}
+                          {item.cover ? <img src={item.cover} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded bg-[#f0efe9] flex-shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-[#1a1a1a] truncate">{item.title}</div>
                             <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
@@ -482,11 +407,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
               <div className="space-y-2">
                 {results.map((r, i) => (
                   <div key={i} onClick={() => { setSelectedContent(r); setStep('confirm') }} className="flex gap-3 items-center p-3 bg-white rounded-xl cursor-pointer border border-[#e5e5e5] active:bg-[#f0efe9]">
-                    {r.cover ? (
-                      <img src={r.cover} alt="" className={`object-cover rounded flex-shrink-0 ${activeCategory === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12'}`} />
-                    ) : (
-                      <div className={`bg-[#f0efe9] flex-shrink-0 ${activeCategory === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12 rounded'}`} />
-                    )}
+                    {r.cover ? <img src={r.cover} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded bg-[#f0efe9] flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-[#1a1a1a] truncate">{r.title}</div>
                       <div className="text-xs text-[#999] truncate">{r.subtitle}</div>
@@ -507,11 +428,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
               <button onClick={resetFlow} className="text-xs text-[#999]">취소</button>
             </div>
             <div className="bg-white rounded-2xl border border-[#e5e5e5] p-4 flex gap-4 items-center">
-              {selectedContent.cover ? (
-                <img src={selectedContent.cover} alt="" className={`object-cover rounded-lg flex-shrink-0 ${activeCategory === 'Music' ? 'w-14 h-14 rounded-full' : 'w-12 h-16'}`} />
-              ) : (
-                <div className={`bg-[#f0efe9] flex-shrink-0 ${activeCategory === 'Music' ? 'w-14 h-14 rounded-full' : 'w-12 h-16 rounded-lg'}`} />
-              )}
+              {selectedContent.cover ? <img src={selectedContent.cover} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" /> : <div className="w-14 h-14 rounded-lg bg-[#f0efe9] flex-shrink-0" />}
               <div>
                 <div className="text-sm font-medium text-[#1a1a1a]">{selectedContent.title}</div>
                 <div className="text-xs text-[#999] mt-1">{selectedContent.subtitle}</div>
@@ -544,9 +461,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                 <div className="text-sm font-medium text-[#1a1a1a] mb-1">사진도 남길까요?</div>
                 <div className="text-xs text-[#999] mb-6">그 순간의 장면을 기록할 수 있어요.</div>
                 <div className="flex gap-3">
-                  <button onClick={() => photoInputRef.current?.click()} className="flex-1 text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl">
-                    {uploadingPhoto ? '업로드 중...' : '📷 사진 추가'}
-                  </button>
+                  <button onClick={() => photoInputRef.current?.click()} className="flex-1 text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl">{uploadingPhoto ? '업로드 중...' : '📷 사진 추가'}</button>
                   <button onClick={resetFlow} className="flex-1 text-sm text-[#999] py-3 rounded-2xl border border-[#e5e5e5]">건너뛰기</button>
                 </div>
               </div>
@@ -570,7 +485,6 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
 
         {activeTab === 'profile' && (
           <div className="space-y-4">
-            {/* YOUR TASTE */}
             <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
               <div className="flex justify-between items-center mb-3">
                 <div className="text-xs text-[#bbb] font-medium tracking-wider">YOUR TASTE</div>
@@ -585,18 +499,15 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-[#1a1a1a] leading-relaxed">
-                  {tasteText || <span className="text-[#bbb]">나의 취향을 소개해보세요.</span>}
-                </div>
+                <div className="text-sm text-[#1a1a1a] leading-relaxed">{tasteText || <span className="text-[#bbb]">나의 취향을 소개해보세요.</span>}</div>
               )}
             </div>
 
-            {/* 스냅샷 목록 */}
             <div className="space-y-3">
               {snapshots.map(snapshot => (
                 <div key={snapshot.id} className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
                   <div className="flex justify-between items-center mb-4">
-                    <div className="text-xs font-medium text-[#999]">{snapshot.year}년 {monthName(snapshot.month)}</div>
+                    <div className="text-xs font-medium text-[#999]">{snapshot.year}년 {snapshot.month}월</div>
                     <button onClick={() => deleteSnapshot(String(snapshot.id))} className="text-xs text-[#ccc] hover:text-red-400">삭제</button>
                   </div>
                   {snapshot.items.length === 0 ? (
@@ -609,14 +520,12 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                         return (
                           <div key={cat}>
                             <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-<div className="flex gap-2">
+                            <div className="flex gap-2">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className="w-20 rounded object-cover cursor-pointer"
-
-onClick={() => setDetailItem(item)} />
+                                  <img key={item.id} src={item.cover} alt="" className="w-20 h-20 rounded object-cover cursor-pointer" onClick={() => setDetailItem(item)} />
                                 ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${'w-14 h-14 rounded'}`} onClick={() => setDetailItem(item)} />
+                                  <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
                                 )
                               ))}
                             </div>
@@ -627,10 +536,7 @@ onClick={() => setDetailItem(item)} />
                   )}
                 </div>
               ))}
-
-              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">
-                + 스냅샷 추가
-              </button>
+              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">+ 스냅샷 추가</button>
             </div>
           </div>
         )}
@@ -641,7 +547,6 @@ onClick={() => setDetailItem(item)} />
               <button onClick={() => setArchiveView('list')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${archiveView === 'list' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}>리스트</button>
               <button onClick={() => setArchiveView('grid')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${archiveView === 'grid' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'border-[#ddd] text-[#555]'}`}>그리드</button>
             </div>
-
             {items.length === 0 ? (
               <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
             ) : archiveView === 'list' ? (
@@ -652,11 +557,7 @@ onClick={() => setDetailItem(item)} />
                     <div className="space-y-1">
                       {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
                         <div key={item.id} className="flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer" onClick={() => setDetailItem(item)}>
-                          {item.cover ? (
-                            <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${'w-8 h-8 rounded'}`} />
-                          ) : (
-                            <div className={`bg-[#f0efe9] flex-shrink-0 ${'w-8 h-8 rounded'}`} />
-                          )}
+                          {item.cover ? <img src={item.cover} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-[#f0efe9] flex-shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
                             <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
@@ -680,13 +581,12 @@ onClick={() => setDetailItem(item)} />
                         return (
                           <div key={cat}>
                             <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-<div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={"w-20 rounded object-cover cursor-pointer"}
-onClick={() => setDetailItem(item)} />
+                                  <img key={item.id} src={item.cover} alt="" className="w-20 h-20 rounded object-cover cursor-pointer" onClick={() => setDetailItem(item)} />
                                 ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                                  <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
                                 )
                               ))}
                             </div>
@@ -725,28 +625,19 @@ onClick={() => setDetailItem(item)} />
                   </div>
                 ) : (
                   <button onClick={() => { setEditingUsername(true); setUsernameInput(username) }} className="text-xs text-[#bbb] mt-1 block">
-{username ? `@${username}` : '+ 프로필 주소 설정'}
+                    {username ? `@${username}` : '+ 프로필 주소 설정'}
                   </button>
                 )}
                 {username && !editingUsername && (
-  <div className="flex items-center gap-2 mt-1">
-    <div className="text-xs text-[#bbb]">whatiwas-six.vercel.app/u/{username}</div>
-    <button
-      onClick={() => {
-        const url = `https://whatiwas-six.vercel.app/u/${username}`
-        if (navigator.share) {
-          navigator.share({ title: 'whatiwas', url })
-        } else {
-          navigator.clipboard.writeText(url)
-          alert('링크가 복사됐어요!')
-        }
-      }}
-      className="text-xs text-[#1a1a1a] bg-[#f0efe9] px-2 py-1 rounded-lg flex-shrink-0"
-    >
-      공유
-    </button>
-  </div>
-)}
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-xs text-[#bbb]">whatiwas-six.vercel.app/u/{username}</div>
+                    <button onClick={() => {
+                      const url = `https://whatiwas-six.vercel.app/u/${username}`
+                      if (navigator.share) { navigator.share({ title: 'whatiwas', url }) }
+                      else { navigator.clipboard.writeText(url); alert('링크가 복사됐어요!') }
+                    }} className="text-xs text-[#1a1a1a] bg-[#f0efe9] px-2 py-1 rounded-lg flex-shrink-0">공유</button>
+                  </div>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -781,7 +672,7 @@ onClick={() => setDetailItem(item)} />
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4 items-start">
-                  {detailItem.cover && <img src={detailItem.cover} alt="" className={`object-cover rounded-lg flex-shrink-0 ${d'w-14 h-14 rounded-lg'}`} />}
+                  {detailItem.cover && <img src={detailItem.cover} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />}
                   <div>
                     <div className="text-sm font-medium text-[#1a1a1a]">{detailItem.title}</div>
                     <div className="text-xs text-[#999] mt-1">{detailItem.subtitle}</div>
@@ -802,9 +693,7 @@ onClick={() => setDetailItem(item)} />
                 <div>
                   {detailItem.memo && <div className="text-sm text-[#555] italic mb-3 bg-[#f7f6f3] rounded-lg px-3 py-2">"{detailItem.memo}"</div>}
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }} className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5]">
-                      {detailItem.memo ? 'Edit note' : '+ 메모'}
-                    </button>
+                    <button onClick={() => { setEditingId(detailItem.id); setEditingMemo(detailItem.memo || '') }} className="flex-1 text-xs text-[#555] rounded-lg py-2 border border-[#e5e5e5]">{detailItem.memo ? 'Edit note' : '+ 메모'}</button>
                     <button onClick={() => { setAddingPhotoToItem(detailItem); photoInputRef.current?.click() }} className="text-xs text-[#555] rounded-lg py-2 px-3 border border-[#e5e5e5]">📷</button>
                     <button onClick={() => deleteItem(detailItem.id)} className="text-xs text-[#ccc] hover:text-red-400 rounded-lg py-2 px-3 border border-[#e5e5e5]">Delete</button>
                   </div>
