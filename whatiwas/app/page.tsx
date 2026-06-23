@@ -523,7 +523,7 @@ export default function Home() {
                             <div className="flex gap-2">
                               {catItems.map(item => (
                                 item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className="w-20 h-20 rounded object-cover cursor-pointer" onClick={() => setDetailItem(item)} />
+<img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-20 h-20' : 'w-14 h-20'}`} onClick={() => setDetailItem(item)} />
                                 ) : (
                                   <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
                                 )

@@ -50,9 +50,8 @@ export default function PublicProfile() {
   const currentItem = allItems[currentItemIdx]
 
   const getCoverStyle = (item: any) => {
-    if (item.category === 'Books') return { width: 90, height: 130, borderRadius: '6px' }
-    if (item.category === 'Movies') return { width: 130, height: 90, borderRadius: '6px' }
-    return { width: 110, height: 110, borderRadius: '6px' }
+    if (item.category === 'Music') return { width: 110, height: 110, borderRadius: '6px' }
+    return { width: 90, height: 130, borderRadius: '6px' }
   }
 
   const goNext = () => setCurrentItemIdx(i => (i + 1) % allItems.length)
