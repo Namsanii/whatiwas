@@ -205,9 +205,8 @@ const items = itemsData || []
 
             {/* 휠 */}
             <div
-              ref={wheelRef}
-              style={{ width: 160, height: 160, borderRadius: '50%', background: '#e5e4df', border: '0.5px solid #ccc', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'none' }}
-              onMouseDown={onWheelStart}
+  ref={wheelRef}
+  style={{ width: 200, height: 200, borderRadius: '50%', background: '#e5e4df', border: '0.5px solid #ccc', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'none' }} onMouseDown={onWheelStart}
               onMouseMove={onWheelMove}
               onMouseUp={onWheelEnd}
               onMouseLeave={onWheelEnd}
@@ -216,16 +215,15 @@ const items = itemsData || []
               onTouchEnd={onWheelEnd}
             >
               <button onClick={() => setShowMenu(v => !v)} className="wheel-btn" style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#777', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>MENU</button>
-              <button onClick={goPrev} className="wheel-btn" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer' }}>‹</button>
-              <button onClick={goNext} className="wheel-btn" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer' }}>›</button>
-              <button style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 16, color: '#777', background: 'none', border: 'none', cursor: 'pointer' }}>▶</button>
+              <button onClick={goPrev} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'sans-serif' }}>‹</button>
+              <button onClick={goNext} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'sans-serif' }}>›</button>
               <div
                 className="wheel-inner"
                 style={{ width: 58, height: 58, borderRadius: '50%', background: '#f7f6f3', border: '0.5px solid #ccc', position: 'absolute', zIndex: 2 }}
               />
             </div>
 
-            <div className="text-xs text-[#ccc] mt-3">휠을 돌리거나 ‹ › 로 탐색</div>
+<div style={{ height: '20px' }} />
           </div>
         )}
 
