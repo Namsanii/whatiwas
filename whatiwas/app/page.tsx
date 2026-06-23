@@ -724,7 +724,7 @@ onClick={() => setDetailItem(item)} />
                   </div>
                 ) : (
                   <button onClick={() => { setEditingUsername(true); setUsernameInput(username) }} className="text-xs text-[#bbb] mt-1 block">
-                    {username ? `@${username} →` : '+ 프로필 주소 설정'}
+{username ? `@${username}` : '+ 프로필 주소 설정'}
                   </button>
                 )}
                 {username && !editingUsername && (
