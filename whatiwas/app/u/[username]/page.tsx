@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { persistSession: false } }
 )
 
@@ -39,10 +39,9 @@ export default async function PublicProfile({ params }: { params: Promise<{ user
   for (const s of (snapshotData || [])) {
     const { data: siData } = await supabase
       .from('snapshot_items')
-      .select('item_id')
+      .select('item_id, items(*)')
       .eq('snapshot_id', s.id)
-const itemIds = (siData || []).map((si: any) => Number(si.item_id))
-const snapshotItems = (allItems || []).filter((i: any) => itemIds.includes(Number(i.id)))
+    const snapshotItems = (siData || []).map((si: any) => si.items).filter(Boolean)
     snapshots.push({ ...s, items: snapshotItems })
   }
 
