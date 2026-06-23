@@ -3,25 +3,23 @@ import { createClient } from '@supabase/supabase-js'
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: false
-    }
-  }
+  { auth: { persistSession: false } }
 )
 
 const categories = ['Books', 'Music', 'Movies'] as const
 
-export default async function PublicProfile({ params }: { params: { username: string } }) {
+export default async function PublicProfile({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('username', params.username)
+    .eq('username', username)
     .single()
 
   if (!profile) return (
     <div className="min-h-screen bg-[#f7f6f3] flex items-center justify-center">
-      <div className="text-sm text-[#999]">존재하지 않는 프로필이에요. (username: {params.username})</div>
+      <div className="text-sm text-[#999]">존재하지 않는 프로필이에요. ({username})</div>
     </div>
   )
 
