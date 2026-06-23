@@ -164,25 +164,29 @@ const items = itemsData || []
             </div>
 
             {/* 표지 */}
-            {currentItem && shape ? (
-<div className="flex flex-col items-center gap-3 mb-4" style={{ height: '220px', justifyContent: 'center' }}>                <div
-                  style={{
-                    width: shape.w,
-                    height: shape.h,
-                    borderRadius: shape.radius,
-                    background: `linear-gradient(135deg, #e8d5b7, #c9a97a)`,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                  }}
-                >
-                  {currentItem.cover && (
-                    <img src={currentItem.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                </div>
-                <div className="text-xs text-[#bbb]">{currentItem.category}</div>
-                <div className="text-sm font-medium text-[#1a1a1a] text-center">{currentItem.title}</div>
-                <div className="text-xs text-[#999] text-center">{currentItem.subtitle}</div>
-              </div>
+{currentItem && shape ? (
+  <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '16px', marginBottom: '16px' }}>
+    <div
+      style={{
+        width: 100,
+        height: 100,
+        borderRadius: currentItem.category === 'Music' ? '50%' : '6px',
+        overflow: 'hidden',
+        flexShrink: 0,
+        background: '#f0efe9',
+      }}
+    >
+      {currentItem.cover && (
+        <img src={currentItem.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      )}
+    </div>
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.05em' }}>{currentItem.category}</div>
+      <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', lineHeight: 1.3 }}>{currentItem.title}</div>
+      <div style={{ fontSize: 11, color: '#999' }}>{currentItem.subtitle}</div>
+      {currentItem.memo && <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic', marginTop: 4 }}>"{currentItem.memo}"</div>}
+    </div>
+  </div>
             ) : (
               <div className="flex items-center justify-center" style={{ minHeight: '200px' }}>
                 <div className="text-xs text-[#bbb]">항목이 없어요.</div>
