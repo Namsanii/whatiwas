@@ -168,9 +168,9 @@ const items = itemsData || []
   <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '16px', marginBottom: '16px' }}>
     <div
       style={{
-        width: 100,
-        height: 100,
-        borderRadius: currentItem.category === 'Music' ? '50%' : '6px',
+width: 130,
+height: 130,
+borderRadius: currentItem.category === 'Music' ? '50%' : '8px',
         overflow: 'hidden',
         flexShrink: 0,
         background: '#f0efe9',
@@ -219,9 +219,10 @@ const items = itemsData || []
               onTouchEnd={onWheelEnd}
             >
               <button onClick={() => setShowMenu(v => !v)} className="wheel-btn" style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#777', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>MENU</button>
-              <button onClick={goPrev} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'sans-serif' }}>‹</button>
-              <button onClick={goNext} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'sans-serif' }}>›</button>
-              <div
+              <button onClick={goPrev} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Arial, sans-serif' }}>&#8249;</button>
+<button onClick={goNext} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Arial, sans-serif' }}>&#8250;</button>
+<button onClick={goPrev} style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 14, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Arial, sans-serif' }}>&#9664;</button>
+<div
                 className="wheel-inner"
                 style={{ width: 58, height: 58, borderRadius: '50%', background: '#f7f6f3', border: '0.5px solid #ccc', position: 'absolute', zIndex: 2 }}
               />
