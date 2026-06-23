@@ -123,14 +123,11 @@ const items = itemsData || []
 
         {/* 상단 */}
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <div className="text-lg font-medium text-[#1a1a1a]">whatiwas</div>
-            <div className="text-xs text-[#999]">@{profile.username}</div>
-          </div>
-          {profile.taste_text && (
-            <div className="text-xs text-[#999] max-w-[140px] text-right leading-relaxed">{profile.taste_text}</div>
-          )}
-        </div>
+  <div>
+    <div className="text-lg font-medium text-[#1a1a1a]">whatiwas</div>
+    <div className="text-xs text-[#999]">@{profile.username}</div>
+  </div>
+</div>
 
         {snapshots.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[#e5e5e5] p-8 text-center">
@@ -140,7 +137,10 @@ const items = itemsData || []
           <div className="bg-white rounded-2xl border border-[#e5e5e5] p-6 flex flex-col items-center">
 
             {/* 스냅샷 선택 */}
-            <div className="relative w-full mb-6">
+            {profile.taste_text && (
+  <div className="text-xs text-[#999] w-full mb-4 leading-relaxed">{profile.taste_text}</div>
+)}
+<div className="relative w-full mb-6">
               <button
                 onClick={() => setShowMenu(v => !v)}
                 className="w-full text-xs text-[#999] py-2 px-4 border border-[#e5e5e5] rounded-xl flex justify-between items-center"
@@ -165,8 +165,7 @@ const items = itemsData || []
 
             {/* 표지 */}
             {currentItem && shape ? (
-              <div className="flex flex-col items-center gap-3 mb-4" style={{ minHeight: '200px', justifyContent: 'center' }}>
-                <div
+<div className="flex flex-col items-center gap-3 mb-4" style={{ height: '220px', justifyContent: 'center' }}>                <div
                   style={{
                     width: shape.w,
                     height: shape.h,
