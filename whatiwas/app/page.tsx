@@ -424,7 +424,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                         {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
                         <div className="p-4 flex gap-3 items-start">
                           {item.cover ? (
-                            <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12'}`} />
+                            <img src={item.cover} alt="" className={`object-cover rounded flex-shrink-0 ${'w-10 h-10 rounded'}`} />
                           ) : (
                             <div className={`bg-[#f0efe9] flex-shrink-0 ${cat === 'Music' ? 'w-10 h-10 rounded-full' : 'w-8 h-12 rounded'}`} />
                           )}
@@ -615,7 +615,7 @@ const fetchSnapshots = async (loadedItems?: Item[]) => {
                                   <img key={item.id} src={item.cover} alt="" className={`object-cover cursor-pointer ${cat === 'Music' ? 'w-24 h-24 rounded-full' : 'w-20 h-28 rounded'}`}
 onClick={() => setDetailItem(item)} />
                                 ) : (
-                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${cat === 'Music' ? 'w-16 h-16 rounded-full' : 'w-14 h-20 rounded'}`} onClick={() => setDetailItem(item)} />
+                                  <div key={item.id} className={`bg-[#f0efe9] cursor-pointer ${'w-14 h-14 rounded'}`} onClick={() => setDetailItem(item)} />
                                 )
                               ))}
                             </div>
@@ -652,9 +652,9 @@ onClick={() => setDetailItem(item)} />
                       {items.filter(i => new Date(i.created_at).getFullYear() === y).map(item => (
                         <div key={item.id} className="flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer" onClick={() => setDetailItem(item)}>
                           {item.cover ? (
-                            <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+                            <img src={item.cover} alt="" className={`object-cover flex-shrink-0 ${'w-8 h-8 rounded'}`} />
                           ) : (
-                            <div className={`bg-[#f0efe9] flex-shrink-0 ${item.category === 'Music' ? 'w-8 h-8 rounded-full' : 'w-6 h-9 rounded'}`} />
+                            <div className={`bg-[#f0efe9] flex-shrink-0 ${'w-8 h-8 rounded'}`} />
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
@@ -780,7 +780,7 @@ onClick={() => setDetailItem(item)} />
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4 items-start">
-                  {detailItem.cover && <img src={detailItem.cover} alt="" className={`object-cover rounded-lg flex-shrink-0 ${detailItem.category === 'Music' ? 'w-14 h-14 rounded-full' : 'w-12 h-16'}`} />}
+                  {detailItem.cover && <img src={detailItem.cover} alt="" className={`object-cover rounded-lg flex-shrink-0 ${d'w-14 h-14 rounded-lg'}`} />}
                   <div>
                     <div className="text-sm font-medium text-[#1a1a1a]">{detailItem.title}</div>
                     <div className="text-xs text-[#999] mt-1">{detailItem.subtitle}</div>
