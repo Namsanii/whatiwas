@@ -37,8 +37,10 @@ if (!prof) { console.log('no profile for username:', username); setLoading(false
 
       const result = []
       for (const s of (snapshotData || [])) {
-        const { data: siData } = await supabase.from('snapshot_items').select('item_id, items(*)').eq('snapshot_id', s.id)
-        const items = (siData || []).map((si: any) => si.items).filter(Boolean)
+        const { data: siData } = await supabase.from('snapshot_items').select('item_id').eq('snapshot_id', s.id)
+const itemIds = (siData || []).map((si: any) => Number(si.item_id))
+const { data: itemsData } = await supabase.from('items').select('*').in('id', itemIds)
+const items = itemsData || []
         result.push({ ...s, items })
       }
       setSnapshots(result)
