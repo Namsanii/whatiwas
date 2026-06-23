@@ -728,8 +728,24 @@ onClick={() => setDetailItem(item)} />
                   </button>
                 )}
                 {username && !editingUsername && (
-                  <div className="text-xs text-[#bbb] mt-1">whatiwas-six.vercel.app/u/{username}</div>
-                )}
+  <div className="flex items-center gap-2 mt-1">
+    <div className="text-xs text-[#bbb]">whatiwas-six.vercel.app/u/{username}</div>
+    <button
+      onClick={() => {
+        const url = `https://whatiwas-six.vercel.app/u/${username}`
+        if (navigator.share) {
+          navigator.share({ title: 'whatiwas', url })
+        } else {
+          navigator.clipboard.writeText(url)
+          alert('링크가 복사됐어요!')
+        }
+      }}
+      className="text-xs text-[#1a1a1a] bg-[#f0efe9] px-2 py-1 rounded-lg flex-shrink-0"
+    >
+      공유
+    </button>
+  </div>
+)}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
