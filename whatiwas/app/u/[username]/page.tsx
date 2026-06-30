@@ -148,7 +148,7 @@ export default function PublicProfile() {
   const coverStyle = currentItem ? getCoverStyle(currentItem) : null
 
   return (
-    <main className="min-h-screen bg-[#f7f6f3] flex flex-col items-center justify-center py-12 px-6">
+    <main className="min-h-screen bg-white flex flex-col items-center justify-center py-12 px-6">
       <div className="w-full max-w-sm">
 
         <div className="flex justify-between items-center mb-6">
@@ -158,18 +158,17 @@ export default function PublicProfile() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#e5e5e5] p-6 flex flex-col items-center">
+        <div style={{ background: 'linear-gradient(135deg, #f4f4f4 0%, #e8e8e8 30%, #f8f8f8 50%, #dcdcdc 70%, #f0f0f0 100%)', borderRadius: '24px', border: '1px solid #d0d0d0', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
 
           {profile.taste_text && screen === 'categoryList' && (
             <div className="text-xs text-[#999] w-full mb-4 leading-relaxed">{profile.taste_text}</div>
           )}
 
-          <div style={{ height: '220px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ height: '220px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'white', borderRadius: '8px', border: '1px solid #ccc', padding: '12px' }}>
 
   {screen === 'categoryList' && (
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', height: '100%' }}>
-                <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>
-                  {categories.map((cat, i) => {
+<div style={{ display: 'flex', gap: '8px', alignItems: 'center', height: '100%' }}>
+                <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>                  {categories.map((cat, i) => {
                     const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
                     return (
                       <div
@@ -183,7 +182,7 @@ export default function PublicProfile() {
                     )
                   })}
                 </div>
-                <div style={{ width: 100, height: 100, borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
+                <div style={{ width: 100, height: 100, borderRadius: '2px', overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
                   {previewCover && (
                     <img src={previewCover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s' }} />
                   )}
