@@ -86,7 +86,8 @@ const { data: allItemsData } = await supabase.from('items').select('*').eq('user
 
   const goNext = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i + 1) % categories.length)
-else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length + 1, 1))    else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsInSnapshot.length, 1))
+else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length + 1, 1))
+    else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsInSnapshot.length, 1))
   }
   const goPrev = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i - 1 + categories.length) % categories.length)
