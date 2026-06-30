@@ -187,7 +187,8 @@ export default function PublicProfile() {
             )}
             {screen === 'snapshotList' && (
               <div className="flex flex-col" style={{ width: '100%' }}>
-                <div style={{ background: '#4a5a7a', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'linear-gradient(180deg, #c4c8d0 0%, #9aa0ab 50%, #b8bcc4 100%)', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
                   <span>{currentCategory}</span>
                   <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
@@ -212,7 +213,7 @@ export default function PublicProfile() {
 
             {screen === 'itemView' && currentItem && coverStyle && (
               <div className="flex flex-col" style={{ width: '100%', height: '100%' }}>
-                <div style={{ background: '#4a5a7a', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'linear-gradient(180deg, #c4c8d0 0%, #9aa0ab 50%, #b8bcc4 100%)', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{currentCategory}</span>
                   <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
