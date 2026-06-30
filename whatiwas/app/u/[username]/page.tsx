@@ -16,16 +16,16 @@ type Screen = 'categoryList' | 'snapshotList' | 'itemView'
 export default function PublicProfile() {
   const params = useParams()
   const [profile, setProfile] = useState<any>(null)
- const [snapshots, setSnapshots] = useState<any[]>([])
+  const [snapshots, setSnapshots] = useState<any[]>([])
   const [allItems, setAllItems] = useState<any[]>([])
- const [isAllMode, setIsAllMode] = useState(false)
   const [loading, setLoading] = useState(true)
+
   const [screen, setScreen] = useState<Screen>('categoryList')
   const [categoryIdx, setCategoryIdx] = useState(0)
   const [snapshotIdx, setSnapshotIdx] = useState(0)
   const [itemIdx, setItemIdx] = useState(0)
 
- const wheelRef = useRef<HTMLDivElement>(null)
+  const wheelRef = useRef<HTMLDivElement>(null)
   const wheelStartAngle = useRef<number | null>(null)
   const [previewCover, setPreviewCover] = useState<string | null>(null)
 
@@ -35,7 +35,8 @@ export default function PublicProfile() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', username).single()
       if (!prof) { setLoading(false); return }
       setProfile(prof)
-const { data: allItemsData } = await supabase.from('items').select('*').eq('user_id', prof.id).order('created_at', { ascending: false })
+
+      const { data: allItemsData } = await supabase.from('items').select('*').eq('user_id', prof.id).order('created_at', { ascending: false })
       setAllItems(allItemsData || [])
 
       const { data: snapshotData } = await supabase.from('snapshots').select('*').eq('user_id', prof.id).order('year', { ascending: false })
@@ -68,7 +69,8 @@ const { data: allItemsData } = await supabase.from('items').select('*').eq('user
     }, 2000)
     return () => clearInterval(interval)
   }, [screen, categoryIdx, snapshots])
- const snapshotsForCategory = snapshots
+
+  const snapshotsForCategory = snapshots
     .map(s => ({ ...s, items: s.items.filter((i: any) => i.category === currentCategory) }))
     .filter(s => s.items.length > 0)
 
@@ -86,7 +88,7 @@ const { data: allItemsData } = await supabase.from('items').select('*').eq('user
 
   const goNext = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i + 1) % categories.length)
-else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length + 1, 1))
+    else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length + 1, 1))
     else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsInSnapshot.length, 1))
   }
   const goPrev = () => {
@@ -97,7 +99,7 @@ else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snaps
 
   const onSelect = () => {
     if (screen === 'categoryList') {
-      if (snapshotsForCategory.length === 0) return
+      if (snapshotsForCategory.length === 0 && allItemsForCategory.length === 0) return
       setSnapshotIdx(0)
       setScreen('snapshotList')
     } else if (screen === 'snapshotList') {
@@ -166,11 +168,12 @@ else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snaps
 
         <div style={{ background: 'linear-gradient(135deg, #f4f4f4 0%, #e8e8e8 30%, #f8f8f8 50%, #dcdcdc 70%, #f0f0f0 100%)', borderRadius: '24px', border: '1px solid #d0d0d0', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
 
+          <div style={{ height: '180px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'white', borderRadius: '8px', border: '1px solid #ccc', overflow: 'hidden' }}>
 
-<div style={{ height: '180px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'white', borderRadius: '8px', border: '1px solid #ccc', overflow: 'hidden' }}>
-  {screen === 'categoryList' && (
+            {screen === 'categoryList' && (
               <div style={{ display: 'flex', height: '180px' }}>
-<div className="flex flex-col gap-1" style={{ width: '50%', minWidth: 0, padding: '4px' }}>
+                <div className="flex flex-col gap-1" style={{ width: '50%', minWidth: 0, padding: '4px' }}>
+                  {categories.map((cat, i) => {
                     const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
                     return (
                       <div
@@ -191,15 +194,15 @@ else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snaps
                 </div>
               </div>
             )}
+
             {screen === 'snapshotList' && (
               <div className="flex flex-col" style={{ width: '100%' }}>
                 <div style={{ background: 'linear-gradient(180deg, #c4c8d0 0%, #9aa0ab 50%, #b8bcc4 100%)', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-
                   <span>{currentCategory}</span>
                   <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
-<div className="flex flex-col gap-1" style={{ padding: '4px' }}>
-                 {snapshotsForCategory.length === 0 && allItemsForCategory.length === 0 ? (
+                <div className="flex flex-col gap-1" style={{ padding: '4px' }}>
+                  {snapshotsForCategory.length === 0 && allItemsForCategory.length === 0 ? (
                     <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
                   ) : (
                     <>
@@ -235,30 +238,30 @@ else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snaps
                   <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flex: 1, padding: '12px' }}>
-                <div style={{ ...coverStyle, overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
-                  {currentItem.cover && (
-                    <img src={currentItem.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.05em' }}>{currentItem.category}</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', lineHeight: 1.3 }}>{currentItem.title}</div>
-                  <div style={{ fontSize: 11, color: '#999' }}>{currentItem.subtitle}</div>
-                 {currentItem.memo && <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic', marginTop: 4 }}>"{currentItem.memo}"</div>}
-                </div>
+                  <div style={{ ...coverStyle, overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
+                    {currentItem.cover && (
+                      <img src={currentItem.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.05em' }}>{currentItem.category}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', lineHeight: 1.3 }}>{currentItem.title}</div>
+                    <div style={{ fontSize: 11, color: '#999' }}>{currentItem.subtitle}</div>
+                    {currentItem.memo && <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic', marginTop: 4 }}>"{currentItem.memo}"</div>}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {screen === 'itemView' && itemsInSnapshot.length > 0 && (
-            <div className="flex gap-1 mb-4">
+            <div className="flex gap-1 mb-4" style={{ marginTop: '12px' }}>
               {itemsInSnapshot.map((_: any, i: number) => (
                 <div key={i} onClick={() => setItemIdx(i)} className="w-1.5 h-1.5 rounded-full cursor-pointer transition-colors" style={{ background: i === itemIdx ? '#1a1a1a' : '#ddd' }} />
               ))}
             </div>
           )}
-          {screen !== 'itemView' && <div className="mb-4" style={{ height: '6px' }} />}
+          {screen !== 'itemView' && <div style={{ height: '18px' }} />}
 
           <div
             ref={wheelRef}
