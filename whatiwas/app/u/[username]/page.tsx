@@ -16,8 +16,9 @@ type Screen = 'categoryList' | 'snapshotList' | 'itemView'
 export default function PublicProfile() {
   const params = useParams()
   const [profile, setProfile] = useState<any>(null)
-  const [snapshots, setSnapshots] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+ const [snapshots, setSnapshots] = useState<any[]>([])
+  const [allItems, setAllItems] = useState<any[]>([])
+  const [isAllMode, setIsAllMode] = useState(false)  const [loading, setLoading] = useState(true)
 
   const [screen, setScreen] = useState<Screen>('categoryList')
   const [categoryIdx, setCategoryIdx] = useState(0)
@@ -34,6 +35,8 @@ export default function PublicProfile() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', username).single()
       if (!prof) { setLoading(false); return }
       setProfile(prof)
+const { data: allItemsData } = await supabase.from('items').select('*').eq('user_id', prof.id).order('created_at', { ascending: false })
+      setAllItems(allItemsData || [])
 
       const { data: snapshotData } = await supabase.from('snapshots').select('*').eq('user_id', prof.id).order('year', { ascending: false })
 
@@ -65,12 +68,15 @@ export default function PublicProfile() {
     }, 2000)
     return () => clearInterval(interval)
   }, [screen, categoryIdx, snapshots])
-  const snapshotsForCategory = snapshots
+ const snapshotsForCategory = snapshots
     .map(s => ({ ...s, items: s.items.filter((i: any) => i.category === currentCategory) }))
     .filter(s => s.items.length > 0)
 
-  const currentSnapshot = snapshotsForCategory[snapshotIdx]
-  const itemsInSnapshot = currentSnapshot?.items || []
+  const allItemsForCategory = allItems.filter((i: any) => i.category === currentCategory)
+
+  const isAllSelected = snapshotIdx === snapshotsForCategory.length
+  const currentSnapshot = isAllSelected ? null : snapshotsForCategory[snapshotIdx]
+  const itemsInSnapshot = isAllSelected ? allItemsForCategory : (currentSnapshot?.items || [])
   const currentItem = itemsInSnapshot[itemIdx]
 
   const getCoverStyle = (item: any) => {
@@ -80,12 +86,11 @@ export default function PublicProfile() {
 
   const goNext = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i + 1) % categories.length)
-    else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length, 1))
-    else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsInSnapshot.length, 1))
+else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length + 1, 1))    else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsInSnapshot.length, 1))
   }
   const goPrev = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i - 1 + categories.length) % categories.length)
-    else if (screen === 'snapshotList') setSnapshotIdx(i => (i - 1 + Math.max(snapshotsForCategory.length, 1)) % Math.max(snapshotsForCategory.length, 1))
+    else if (screen === 'snapshotList') setSnapshotIdx(i => (i - 1 + Math.max(snapshotsForCategory.length + 1, 1)) % Math.max(snapshotsForCategory.length + 1, 1))
     else if (screen === 'itemView') setItemIdx(i => (i - 1 + Math.max(itemsInSnapshot.length, 1)) % Math.max(itemsInSnapshot.length, 1))
   }
 
@@ -193,19 +198,30 @@ export default function PublicProfile() {
                   <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
 <div className="flex flex-col gap-1" style={{ padding: '4px' }}>
-                {snapshotsForCategory.length === 0 ? (
+                 {snapshotsForCategory.length === 0 && allItemsForCategory.length === 0 ? (
                     <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
                   ) : (
-                    snapshotsForCategory.map((s, i) => (
-                      <div
-                        key={s.id}
-                        onClick={() => { setSnapshotIdx(i); setItemIdx(0); setScreen('itemView') }}
-                        className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
-                      >
-                        <span className={`text-sm ${i === snapshotIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{s.year}년 {s.month}월</span>
-                        <span className={`text-xs ${i === snapshotIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{s.items.length} ›</span>
-                      </div>
-                    ))
+                    <>
+                      {snapshotsForCategory.map((s, i) => (
+                        <div
+                          key={s.id}
+                          onClick={() => { setSnapshotIdx(i); setItemIdx(0); setScreen('itemView') }}
+                          className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
+                        >
+                          <span className={`text-sm ${i === snapshotIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{s.year}년 {s.month}월</span>
+                          <span className={`text-xs ${i === snapshotIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{s.items.length} ›</span>
+                        </div>
+                      ))}
+                      {allItemsForCategory.length > 0 && (
+                        <div
+                          onClick={() => { setSnapshotIdx(snapshotsForCategory.length); setItemIdx(0); setScreen('itemView') }}
+                          className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${snapshotIdx === snapshotsForCategory.length ? 'bg-[#1a1a1a]' : ''}`}
+                        >
+                          <span className={`text-sm ${snapshotIdx === snapshotsForCategory.length ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>All</span>
+                          <span className={`text-xs ${snapshotIdx === snapshotsForCategory.length ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{allItemsForCategory.length} ›</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
