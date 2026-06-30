@@ -18,8 +18,8 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<any>(null)
  const [snapshots, setSnapshots] = useState<any[]>([])
   const [allItems, setAllItems] = useState<any[]>([])
-  const [isAllMode, setIsAllMode] = useState(false)  const [loading, setLoading] = useState(true)
-
+ const [isAllMode, setIsAllMode] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [screen, setScreen] = useState<Screen>('categoryList')
   const [categoryIdx, setCategoryIdx] = useState(0)
   const [snapshotIdx, setSnapshotIdx] = useState(0)
