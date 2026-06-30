@@ -164,13 +164,13 @@ export default function PublicProfile() {
 <div style={{ height: '180px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'white', borderRadius: '8px', border: '1px solid #ccc', overflow: 'hidden' }}>
   {screen === 'categoryList' && (
               <div style={{ display: 'flex', height: '180px' }}>
-                <div className="flex flex-col gap-1" style={{ width: '50%', minWidth: 0, padding: '8px' }}>                  {categories.map((cat, i) => {
+<div className="flex flex-col gap-1" style={{ width: '50%', minWidth: 0, padding: '4px' }}>
                     const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
                     return (
                       <div
                         key={cat}
                         onClick={() => { setCategoryIdx(i); if (count > 0) { setSnapshotIdx(0); setScreen('snapshotList') } }}
-                        className={`flex justify-between items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${i === categoryIdx ? 'bg-[#1a1a1a]' : ''}`}
+                        className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${i === categoryIdx ? 'bg-[#1a1a1a]' : ''}`}
                       >
                         <span className={`text-sm ${i === categoryIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{cat}</span>
                         <span className={`text-xs ${i === categoryIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{count > 0 ? `${count} ›` : '–'}</span>
@@ -192,7 +192,7 @@ export default function PublicProfile() {
                   <span>{currentCategory}</span>
                   <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
-                <div className="flex flex-col gap-1" style={{ padding: '8px' }}>
+<div className="flex flex-col gap-1" style={{ padding: '4px' }}>
                 {snapshotsForCategory.length === 0 ? (
                     <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
                   ) : (
@@ -200,7 +200,7 @@ export default function PublicProfile() {
                       <div
                         key={s.id}
                         onClick={() => { setSnapshotIdx(i); setItemIdx(0); setScreen('itemView') }}
-                        className={`flex justify-between items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
+                        className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
                       >
                         <span className={`text-sm ${i === snapshotIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{s.year}년 {s.month}월</span>
                         <span className={`text-xs ${i === snapshotIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{s.items.length} ›</span>
