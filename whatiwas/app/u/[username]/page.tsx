@@ -210,7 +210,7 @@ export default function PublicProfile() {
               </div>
             )}
 
-            {{screen === 'itemView' && currentItem && coverStyle && (
+            {screen === 'itemView' && currentItem && coverStyle && (
               <div className="flex flex-col" style={{ width: '100%', height: '100%' }}>
                 <div style={{ background: '#4a5a7a', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{currentCategory}</span>
