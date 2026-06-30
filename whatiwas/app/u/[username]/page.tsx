@@ -186,7 +186,7 @@ export default function PublicProfile() {
               </div>
             )}
             {screen === 'snapshotList' && (
-              <div className="flex flex-col gap-1" style={{ width: '100%' }}>
+              <div className="flex flex-col gap-1" style={{ width: '100%', padding: '8px' }}>
                 <div className="text-xs text-[#bbb] px-3 mb-1">{currentCategory}</div>
                 {snapshotsForCategory.length === 0 ? (
                   <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
