@@ -24,8 +24,9 @@ export default function PublicProfile() {
   const [snapshotIdx, setSnapshotIdx] = useState(0)
   const [itemIdx, setItemIdx] = useState(0)
 
-  const wheelRef = useRef<HTMLDivElement>(null)
+ const wheelRef = useRef<HTMLDivElement>(null)
   const wheelStartAngle = useRef<number | null>(null)
+  const [previewCover, setPreviewCover] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +52,19 @@ export default function PublicProfile() {
 
   const currentCategory = categories[categoryIdx]
 
+  useEffect(() => {
+    if (screen !== 'categoryList') return
+    const covers = snapshots
+      .flatMap(s => s.items)
+      .filter((i: any) => i.category === currentCategory && i.cover)
+      .map((i: any) => i.cover)
+    if (covers.length === 0) { setPreviewCover(null); return }
+    setPreviewCover(covers[Math.floor(Math.random() * covers.length)])
+    const interval = setInterval(() => {
+      setPreviewCover(covers[Math.floor(Math.random() * covers.length)])
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [screen, categoryIdx, snapshots])
   const snapshotsForCategory = snapshots
     .map(s => ({ ...s, items: s.items.filter((i: any) => i.category === currentCategory) }))
     .filter(s => s.items.length > 0)
@@ -152,24 +166,30 @@ export default function PublicProfile() {
 
           <div style={{ height: '220px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
 
-            {screen === 'categoryList' && (
-              <div className="flex flex-col gap-1">
-                {categories.map((cat, i) => {
-                  const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
-                  return (
-                    <div
-                      key={cat}
-                      onClick={() => { setCategoryIdx(i); if (count > 0) { setSnapshotIdx(0); setScreen('snapshotList') } }}
-                      className={`flex justify-between items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${i === categoryIdx ? 'bg-[#1a1a1a]' : ''}`}
-                    >
-                      <span className={`text-sm ${i === categoryIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{cat}</span>
-                      <span className={`text-xs ${i === categoryIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{count > 0 ? `${count} ›` : '–'}</span>
-                    </div>
-                  )
-                })}
+  {screen === 'categoryList' && (
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', height: '100%' }}>
+                <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>
+                  {categories.map((cat, i) => {
+                    const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
+                    return (
+                      <div
+                        key={cat}
+                        onClick={() => { setCategoryIdx(i); if (count > 0) { setSnapshotIdx(0); setScreen('snapshotList') } }}
+                        className={`flex justify-between items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${i === categoryIdx ? 'bg-[#1a1a1a]' : ''}`}
+                      >
+                        <span className={`text-sm ${i === categoryIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{cat}</span>
+                        <span className={`text-xs ${i === categoryIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{count > 0 ? `${count} ›` : '–'}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ width: 100, height: 100, borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
+                  {previewCover && (
+                    <img src={previewCover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s' }} />
+                  )}
+                </div>
               </div>
             )}
-
             {screen === 'snapshotList' && (
               <div className="flex flex-col gap-1">
                 <div className="text-xs text-[#bbb] px-3 mb-1">{currentCategory}</div>
