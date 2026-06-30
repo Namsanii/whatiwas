@@ -161,11 +161,10 @@ export default function PublicProfile() {
         <div style={{ background: 'linear-gradient(135deg, #f4f4f4 0%, #e8e8e8 30%, #f8f8f8 50%, #dcdcdc 70%, #f0f0f0 100%)', borderRadius: '24px', border: '1px solid #d0d0d0', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
 
 
-          <div style={{ height: '180px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'white', borderRadius: '8px', border: '1px solid #ccc', padding: '8px' }}>
-
+<div style={{ height: '180px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'white', borderRadius: '8px', border: '1px solid #ccc', overflow: 'hidden' }}>
   {screen === 'categoryList' && (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', height: 'auto' }}>
-                <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>                  {categories.map((cat, i) => {
+              <div style={{ display: 'flex', height: '180px' }}>
+                <div className="flex flex-col gap-1" style={{ width: '50%', minWidth: 0, padding: '8px' }}>                  {categories.map((cat, i) => {
                     const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
                     return (
                       <div
@@ -179,7 +178,7 @@ export default function PublicProfile() {
                     )
                   })}
                 </div>
-                <div style={{ width: 100, height: 100, borderRadius: '2px', overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
+                <div style={{ width: '50%', height: '180px', overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
                   {previewCover && (
                     <img src={previewCover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s' }} />
                   )}
