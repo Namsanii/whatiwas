@@ -186,27 +186,37 @@ export default function PublicProfile() {
               </div>
             )}
             {screen === 'snapshotList' && (
-              <div className="flex flex-col gap-1" style={{ width: '100%', padding: '8px' }}>
-                <div className="text-xs text-[#bbb] px-3 mb-1">{currentCategory}</div>
+              <div className="flex flex-col" style={{ width: '100%' }}>
+                <div style={{ background: '#4a5a7a', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{currentCategory}</span>
+                  <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
+                </div>
+                <div className="flex flex-col gap-1" style={{ padding: '8px' }}>
                 {snapshotsForCategory.length === 0 ? (
-                  <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
-                ) : (
-                  snapshotsForCategory.map((s, i) => (
-                    <div
-                      key={s.id}
-                      onClick={() => { setSnapshotIdx(i); setItemIdx(0); setScreen('itemView') }}
-                      className={`flex justify-between items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
-                    >
-                      <span className={`text-sm ${i === snapshotIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{s.year}년 {s.month}월</span>
-                      <span className={`text-xs ${i === snapshotIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{s.items.length} ›</span>
-                    </div>
-                  ))
-                )}
+                    <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
+                  ) : (
+                    snapshotsForCategory.map((s, i) => (
+                      <div
+                        key={s.id}
+                        onClick={() => { setSnapshotIdx(i); setItemIdx(0); setScreen('itemView') }}
+                        className={`flex justify-between items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
+                      >
+                        <span className={`text-sm ${i === snapshotIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{s.year}년 {s.month}월</span>
+                        <span className={`text-xs ${i === snapshotIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{s.items.length} ›</span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 
-            {screen === 'itemView' && currentItem && coverStyle && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', height: '100%' }}>
+            {{screen === 'itemView' && currentItem && coverStyle && (
+              <div className="flex flex-col" style={{ width: '100%', height: '100%' }}>
+                <div style={{ background: '#4a5a7a', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{currentCategory}</span>
+                  <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flex: 1, padding: '12px' }}>
                 <div style={{ ...coverStyle, overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
                   {currentItem.cover && (
                     <img src={currentItem.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -216,7 +226,8 @@ export default function PublicProfile() {
                   <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.05em' }}>{currentItem.category}</div>
                   <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', lineHeight: 1.3 }}>{currentItem.title}</div>
                   <div style={{ fontSize: 11, color: '#999' }}>{currentItem.subtitle}</div>
-                  {currentItem.memo && <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic', marginTop: 4 }}>"{currentItem.memo}"</div>}
+                 {currentItem.memo && <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic', marginTop: 4 }}>"{currentItem.memo}"</div>}
+                </div>
                 </div>
               </div>
             )}
