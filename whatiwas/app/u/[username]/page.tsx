@@ -160,9 +160,6 @@ export default function PublicProfile() {
 
         <div style={{ background: 'linear-gradient(135deg, #f4f4f4 0%, #e8e8e8 30%, #f8f8f8 50%, #dcdcdc 70%, #f0f0f0 100%)', borderRadius: '24px', border: '1px solid #d0d0d0', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
 
-          {profile.taste_text && screen === 'categoryList' && (
-            <div className="text-xs text-[#999] w-full mb-4 leading-relaxed">{profile.taste_text}</div>
-          )}
 
           <div style={{ height: '220px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'white', borderRadius: '8px', border: '1px solid #ccc', padding: '12px' }}>
 
