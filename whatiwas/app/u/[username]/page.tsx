@@ -164,7 +164,7 @@ export default function PublicProfile() {
           <div style={{ height: '180px', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', background: 'white', borderRadius: '8px', border: '1px solid #ccc', padding: '8px' }}>
 
   {screen === 'categoryList' && (
-<div style={{ display: 'flex', gap: '8px', alignItems: 'center', height: '100%' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', height: 'auto' }}>
                 <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>                  {categories.map((cat, i) => {
                     const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
                     return (
@@ -187,7 +187,7 @@ export default function PublicProfile() {
               </div>
             )}
             {screen === 'snapshotList' && (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1" style={{ width: '100%' }}>
                 <div className="text-xs text-[#bbb] px-3 mb-1">{currentCategory}</div>
                 {snapshotsForCategory.length === 0 ? (
                   <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
