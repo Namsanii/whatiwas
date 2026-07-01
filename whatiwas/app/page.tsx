@@ -42,6 +42,8 @@ export default function Home() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
 const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
+  const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
+  const [editPickIds, setEditPickIds] = useState<string[]>([])
   const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
   const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
   const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
@@ -150,6 +152,34 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const deleteSnapshot = async (id: string) => {
     await supabase.from('snapshots').delete().eq('id', id)
     setSnapshots(prev => prev.filter(s => String(s.id) !== id))
+  }
+
+  const startEditSnapshot = (snapshot: Snapshot) => {
+    setEditingSnapshotId(String(snapshot.id))
+    setEditPickIds(snapshot.items.map(i => String(i.id)))
+  }
+
+  const saveEditSnapshot = async () => {
+    if (!editingSnapshotId) return
+    await supabase.from('snapshot_items').delete().eq('snapshot_id', editingSnapshotId)
+    for (const itemId of editPickIds) {
+      await supabase.from('snapshot_items').insert({ snapshot_id: editingSnapshotId, item_id: itemId, user_id: session.user.id })
+    }
+    const { data: allItemsData } = await supabase.from('items').select('*')
+    const allItems = (allItemsData || []) as Item[]
+    const updatedItems = allItems.filter(i => editPickIds.includes(String(i.id)))
+    setSnapshots(prev => prev.map(s => String(s.id) === editingSnapshotId ? { ...s, items: updatedItems } : s))
+    setEditingSnapshotId(null)
+    setEditPickIds([])
+  }
+
+  const toggleEditPick = (item: Item) => {
+    const id = String(item.id)
+    if (editPickIds.includes(id)) {
+      setEditPickIds(prev => prev.filter(pid => pid !== id))
+    } else {
+      setEditPickIds(prev => [...prev, id])
+    }
   }
 
   const toggleSnapshotPick = (item: Item) => {
@@ -309,6 +339,49 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
           <div className="text-sm font-medium">{savedFeedback} 기록됐어요</div>
+        </div>
+      )}
+
+      {editingSnapshotId && (
+        <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-6 py-10">
+            <div className="flex justify-between items-center mb-2">
+              <div className="text-sm font-medium text-[#1a1a1a]">스냅샷 편집</div>
+              <button onClick={() => { setEditingSnapshotId(null); setEditPickIds([]) }} className="text-xs text-[#999]">취소</button>
+            </div>
+            <div className="text-xs text-[#bbb] mb-6">콘텐츠를 추가하거나 제거해요.</div>
+            {categories.map(cat => {
+              const catItems = items.filter(i => i.category === cat)
+              if (catItems.length === 0) return null
+              const selectedCount = catItems.filter(i => editPickIds.includes(String(i.id))).length
+              return (
+                <div key={cat} className="mb-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="text-xs font-medium text-[#bbb] tracking-wider">{cat.toUpperCase()}</div>
+                    <div className="text-xs text-[#bbb]">{selectedCount}개 선택됨</div>
+                  </div>
+                  <div className="space-y-1">
+                    {catItems.map(item => {
+                      const isPicked = editPickIds.includes(String(item.id))
+                      return (
+                        <div key={item.id} onClick={() => toggleEditPick(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isPicked ? 'opacity-100' : 'opacity-50'}`}>
+                          {item.cover ? <img src={item.cover} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-[#f0efe9] flex-shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
+                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isPicked ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-[#ddd]'}`}>
+                            {isPicked && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+            <button onClick={saveEditSnapshot} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">저장하기</button>
+          </div>
         </div>
       )}
 
@@ -604,10 +677,16 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
                               )
                             })}
                           </div>
-                          <button
-                            onClick={e => { e.stopPropagation(); deleteSnapshot(String(snapshot.id)) }}
-                            className="text-xs text-[#ccc] hover:text-red-400 mt-4"
-                          >삭제</button>
+                          <div className="flex gap-3 mt-4">
+                            <button
+                              onClick={e => { e.stopPropagation(); startEditSnapshot(snapshot) }}
+                              className="text-xs text-[#999]"
+                            >편집</button>
+                            <button
+                              onClick={e => { e.stopPropagation(); deleteSnapshot(String(snapshot.id)) }}
+                              className="text-xs text-[#ccc] hover:text-red-400"
+                            >삭제</button>
+                          </div>
                         </div>
                       )}
                     </div>
