@@ -199,7 +199,6 @@ export default function PublicProfile() {
               <div className="flex flex-col" style={{ width: '100%' }}>
                 <div style={{ background: 'linear-gradient(180deg, #c4c8d0 0%, #9aa0ab 50%, #b8bcc4 100%)', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{currentCategory}</span>
-                  <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
                 <div className="flex flex-col gap-1" style={{ padding: '4px' }}>
                   {snapshotsForCategory.length === 0 && allItemsForCategory.length === 0 ? (
@@ -235,7 +234,6 @@ export default function PublicProfile() {
               <div className="flex flex-col" style={{ width: '100%', height: '100%' }}>
                 <div style={{ background: 'linear-gradient(180deg, #c4c8d0 0%, #9aa0ab 50%, #b8bcc4 100%)', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{currentCategory}</span>
-                  <span style={{ fontSize: 9, opacity: 0.7 }}>▶</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flex: 1, padding: '12px' }}>
                   <div style={{ ...coverStyle, overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
