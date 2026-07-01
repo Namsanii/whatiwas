@@ -41,6 +41,7 @@ export default function Home() {
   const [items, setItems] = useState<Item[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [creatingSnapshot, setCreatingSnapshot] = useState(false)
+  const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
   const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
   const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
   const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
@@ -532,40 +533,54 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
               )}
             </div>
 
-            <div className="space-y-3">
-              {snapshots.map(snapshot => (
-                <div key={snapshot.id} className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="text-xs font-medium text-[#999]">{snapshot.year}년 {snapshot.month}월</div>
-                    <button onClick={() => deleteSnapshot(String(snapshot.id))} className="text-xs text-[#ccc] hover:text-red-400">삭제</button>
-                  </div>
-                  {snapshot.items.length === 0 ? (
-                    <div className="text-xs text-[#bbb]">선택된 항목이 없어요.</div>
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      {categories.map(cat => {
-                        const catItems = snapshot.items.filter(i => i.category === cat)
-                        if (catItems.length === 0) return null
-                        return (
-                          <div key={cat}>
-                            <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                            <div className="flex gap-2">
-                              {catItems.map(item => (
-                                item.cover ? (
-<img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-20 h-20' : 'w-14 h-20'}`} onClick={() => setDetailItem(item)} />
-                                ) : (
-                                  <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
-                                )
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      })}
+<div className="space-y-1">
+              {snapshots.map(snapshot => {
+                const isExpanded = expandedSnapshotId === String(snapshot.id)
+                return (
+                  <div key={snapshot.id}>
+                    <div
+                      className="flex justify-between items-center py-3 border-b border-[#ebebeb] cursor-pointer"
+                      onClick={() => setExpandedSnapshotId(isExpanded ? null : String(snapshot.id))}
+                    >
+                      <div className="text-sm text-[#1a1a1a]">{snapshot.year}년 {snapshot.month}월</div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-[#bbb]">{snapshot.items.length}개</span>
+                        <span className="text-xs text-[#bbb]">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
-              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">+ 스냅샷 추가</button>
+                    {isExpanded && (
+                      <div className="py-4">
+                        {snapshot.items.length === 0 ? (
+                          <div className="text-xs text-[#bbb]">선택된 항목이 없어요.</div>
+                        ) : (
+                          <div className="flex flex-col gap-4">
+                            {categories.map(cat => {
+                              const catItems = snapshot.items.filter(i => i.category === cat)
+                              if (catItems.length === 0) return null
+                              return (
+                                <div key={cat}>
+                                  <div className="text-xs text-[#bbb] mb-2">{cat}</div>
+                                  <div className="flex gap-2">
+                                    {catItems.map(item => (
+                                      item.cover ? (
+                                        <img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-20 h-20' : 'w-14 h-20'}`} onClick={() => setDetailItem(item)} />
+                                      ) : (
+                                        <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
+                                      )
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                        <button onClick={() => deleteSnapshot(String(snapshot.id))} className="text-xs text-[#ccc] hover:text-red-400 mt-4">삭제</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 mt-2 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">+ 스냅샷 추가</button>
             </div>
           </div>
         )}
