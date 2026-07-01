@@ -159,7 +159,6 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
     if (snapshotPickIds.includes(id)) {
       setSnapshotPickIds(prev => prev.filter(pid => pid !== id))
     } else {
-      if (currentCat.length >= 3) { alert(`${cat}는 최대 3개까지 선택할 수 있어요.`); return }
       setSnapshotPickIds(prev => [...prev, id])
     }
   }
