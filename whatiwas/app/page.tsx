@@ -42,7 +42,6 @@ export default function Home() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
 const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
-    const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
   const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
   const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
   const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
