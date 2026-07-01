@@ -40,8 +40,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
-  const [creatingSnapshot, setCreatingSnapshot] = useState(false)
+const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
+    const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
   const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
   const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
   const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
@@ -515,54 +516,84 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
 
         {activeTab === 'profile' && (
           <div className="space-y-4">
-<div className="space-y-1">
+<div className="space-y-3">
               {snapshots.map(snapshot => {
-                const isExpanded = expandedSnapshotId === String(snapshot.id)
+                const allCovers = snapshot.items.map((i: Item) => i.cover).filter(Boolean)
+                const catSet = categories.filter(cat => snapshot.items.some(i => i.category === cat))
                 return (
-                  <div key={snapshot.id}>
-                    <div
-                      className="flex justify-between items-center py-3 border-b border-[#ebebeb] cursor-pointer"
-                      onClick={() => setExpandedSnapshotId(isExpanded ? null : String(snapshot.id))}
-                    >
-                      <div className="text-sm text-[#1a1a1a]">{snapshot.year}년 {snapshot.month}월</div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-[#bbb]">{snapshot.items.length}개</span>
-                        <span className="text-xs text-[#bbb]">{isExpanded ? '▲' : '▼'}</span>
+                  <div
+                    key={snapshot.id}
+                    className="relative rounded-2xl overflow-hidden cursor-pointer"
+                    style={{ background: 'white', border: '0.5px solid #e5e5e5', padding: '20px' }}
+                    onClick={() => setExpandedSnapshotId(expandedSnapshotId === String(snapshot.id) ? null : String(snapshot.id))}
+                  >
+                    {/* 배경 블러 */}
+                    {allCovers[0] && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        backgroundImage: `url(${allCovers[0]})`,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        opacity: 0.07, filter: 'blur(12px)', borderRadius: '16px'
+                      }} />
+                    )}
+
+                    <div style={{ position: 'relative' }}>
+                      <div className="text-xs text-[#bbb] mb-3" style={{ letterSpacing: '0.04em' }}>
+                        {snapshot.year}년 {snapshot.month}월
+                      </div>
+
+                      {/* 겹쳐진 표지들 */}
+                      <div style={{ position: 'relative', height: '80px', marginBottom: '12px' }}>
+                        {snapshot.items.slice(0, 6).map((item: Item, idx: number) => {
+                          const isMusic = item.category === 'Music'
+                          const w = isMusic ? 56 : 52
+                          const h = isMusic ? 56 : 74
+                          const rotate = [-6, -2, 3, -4, 2, -3][idx] ?? 0
+                          const translateY = isMusic ? 8 : [4, 2, 0, 4, 2, 0][idx] ?? 0
+                          return (
+                            <div
+                              key={item.id}
+                              style={{
+                                position: 'absolute',
+                                left: idx * 28,
+                                zIndex: idx + 1,
+                                width: w, height: h,
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                border: '1.5px solid white',
+                                transform: `rotate(${rotate}deg) translateY(${translateY}px)`,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                              }}
+                              onClick={e => { e.stopPropagation(); setDetailItem(item) }}
+                            >
+                              {item.cover
+                                ? <img src={item.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                : <div style={{ width: '100%', height: '100%', background: '#f0efe9' }} />
+                              }
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-1">
+                          {catSet.map(cat => (
+                            <span key={cat} style={{ fontSize: 10, color: '#bbb', background: '#f7f6f3', border: '0.5px solid #e5e5e5', borderRadius: '4px', padding: '2px 6px' }}>{cat}</span>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#bbb]">{snapshot.items.length}개</span>
+                          <button
+                            onClick={e => { e.stopPropagation(); deleteSnapshot(String(snapshot.id)) }}
+                            className="text-xs text-[#ddd] hover:text-red-400"
+                          >삭제</button>
+                        </div>
                       </div>
                     </div>
-                    {isExpanded && (
-                      <div className="py-4">
-                        {snapshot.items.length === 0 ? (
-                          <div className="text-xs text-[#bbb]">선택된 항목이 없어요.</div>
-                        ) : (
-                          <div className="flex flex-col gap-4">
-                            {categories.map(cat => {
-                              const catItems = snapshot.items.filter(i => i.category === cat)
-                              if (catItems.length === 0) return null
-                              return (
-                                <div key={cat}>
-                                  <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                                  <div className="flex gap-2">
-                                    {catItems.map(item => (
-                                      item.cover ? (
-                                        <img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-20 h-20' : 'w-14 h-20'}`} onClick={() => setDetailItem(item)} />
-                                      ) : (
-                                        <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
-                                      )
-                                    ))}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                        <button onClick={() => deleteSnapshot(String(snapshot.id))} className="text-xs text-[#ccc] hover:text-red-400 mt-4">삭제</button>
-                      </div>
-                    )}
                   </div>
                 )
               })}
-              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 mt-2 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">+ 스냅샷 추가</button>
+              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">+ 스냅샷 추가</button>
             </div>
           </div>
         )}
