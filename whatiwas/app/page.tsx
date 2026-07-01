@@ -509,30 +509,12 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
         </div>
 
         <div className="flex gap-0 mb-8 border-b border-[#e5e5e5]">
-          <button onClick={() => setActiveTab('profile')} className={`pb-2 px-1 mr-6 text-sm transition-all ${activeTab === 'profile' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}>Profile</button>
+          <button onClick={() => setActiveTab('profile')} className={`pb-2 px-1 mr-6 text-sm transition-all ${activeTab === 'profile' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}>Snapshots</button>
           <button onClick={() => setActiveTab('archive')} className={`pb-2 px-1 text-sm transition-all ${activeTab === 'archive' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}>Archive</button>
         </div>
 
         {activeTab === 'profile' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-[#e5e5e5] p-5">
-              <div className="flex justify-between items-center mb-3">
-                <div className="text-xs text-[#bbb] font-medium tracking-wider">YOUR TASTE</div>
-                <button onClick={() => { setEditingTaste(true); setTasteInput(tasteText) }} className="text-xs text-[#bbb] hover:text-[#555]">편집</button>
-              </div>
-              {editingTaste ? (
-                <div className="space-y-2">
-                  <textarea className="w-full text-sm bg-[#f7f6f3] rounded-xl px-3 py-2 outline-none resize-none" rows={3} value={tasteInput} onChange={e => setTasteInput(e.target.value)} autoFocus placeholder="나의 취향을 소개해요..." />
-                  <div className="flex gap-2">
-                    <button onClick={saveTaste} className="flex-1 text-xs bg-[#1a1a1a] text-white rounded-lg py-2">저장</button>
-                    <button onClick={() => setEditingTaste(false)} className="flex-1 text-xs text-[#999] rounded-lg py-2 border border-[#e5e5e5]">취소</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-[#1a1a1a] leading-relaxed">{tasteText || <span className="text-[#bbb]">나의 취향을 소개해보세요.</span>}</div>
-              )}
-            </div>
-
 <div className="space-y-1">
               {snapshots.map(snapshot => {
                 const isExpanded = expandedSnapshotId === String(snapshot.id)
