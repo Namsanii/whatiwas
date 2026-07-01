@@ -626,8 +626,9 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
                 })()}
               </>
             )}
-          </div>
+        </div>
         )}
+      </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] px-6 py-3 flex justify-between items-center">
         <button onClick={() => setStep('select')} className="text-sm bg-[#1a1a1a] text-white rounded-full px-5 py-2">+ 기록하기</button>
