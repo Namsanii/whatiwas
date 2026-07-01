@@ -543,7 +543,7 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
 
                       {/* 겹쳐진 표지들 */}
                       <div style={{ position: 'relative', height: '80px', marginBottom: '12px' }}>
-                        {snapshot.items.slice(0, 6).map((item: Item, idx: number) => {
+                        {snapshot.items.map((item: Item, idx: number) => {
                           const isMusic = item.category === 'Music'
                           const w = isMusic ? 56 : 52
                           const h = isMusic ? 56 : 74
@@ -580,14 +580,37 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
                             <span key={cat} style={{ fontSize: 10, color: '#bbb', background: '#f7f6f3', border: '0.5px solid #e5e5e5', borderRadius: '4px', padding: '2px 6px' }}>{cat}</span>
                           ))}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#bbb]">{snapshot.items.length}개</span>
+                        <span className="text-xs text-[#bbb]">{snapshot.items.length}개</span>
+                      </div>
+
+                      {expandedSnapshotId === String(snapshot.id) && (
+                        <div style={{ marginTop: '16px', borderTop: '0.5px solid #ebebeb', paddingTop: '16px' }}>
+                          <div className="flex flex-col gap-4">
+                            {categories.map(cat => {
+                              const catItems = snapshot.items.filter(i => i.category === cat)
+                              if (catItems.length === 0) return null
+                              return (
+                                <div key={cat}>
+                                  <div className="text-xs text-[#bbb] mb-2">{cat}</div>
+                                  <div className="flex gap-2 flex-wrap">
+                                    {catItems.map(item => (
+                                      item.cover ? (
+                                        <img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-16 h-16' : 'w-12 h-16'}`} onClick={e => { e.stopPropagation(); setDetailItem(item) }} />
+                                      ) : (
+                                        <div key={item.id} className="w-16 h-16 rounded bg-[#f0efe9] cursor-pointer" onClick={e => { e.stopPropagation() }} />
+                                      )
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
                           <button
                             onClick={e => { e.stopPropagation(); deleteSnapshot(String(snapshot.id)) }}
-                            className="text-xs text-[#ddd] hover:text-red-400"
+                            className="text-xs text-[#ccc] hover:text-red-400 mt-4"
                           >삭제</button>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )
