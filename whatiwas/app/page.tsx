@@ -571,62 +571,39 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
         )}
 
 {activeTab === 'archive' && (
-          <div className="flex flex-col items-center">
+          <div>
             {items.length === 0 ? (
               <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
             ) : (
-              <>
-                {(() => {
-                  const archiveItem = items[archiveIdx]
-                  const getCoverStyle = (item: Item) => {
-                    if (item.category === 'Music') return { width: 110, height: 110, borderRadius: '6px' }
-                    return { width: 90, height: 130, borderRadius: '6px' }
-                  }
-                  const coverStyle = archiveItem ? getCoverStyle(archiveItem) : null
-                  return (
-                    <>
-                      <div style={{ height: '180px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'white', borderRadius: '8px', border: '1px solid #e5e5e5', padding: '12px', marginBottom: '12px' }}>
-                        {archiveItem && coverStyle && (
-                          <>
-                            <div style={{ ...coverStyle, overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
-                              {archiveItem.cover && <img src={archiveItem.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              <div className="space-y-8">
+                {allYears.map(y => (
+                  <div key={y}>
+                    <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
+                    <div className="space-y-4">
+                      {categories.map(cat => {
+                        const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
+                        if (catItems.length === 0) return null
+                        return (
+                          <div key={cat}>
+                            <div className="text-xs text-[#bbb] mb-2">{cat}</div>
+                            <div className="flex gap-2 flex-wrap">
+                              {catItems.map(item => (
+                                item.cover ? (
+                                  <img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-20 h-20' : 'w-14 h-20'}`} onClick={() => setDetailItem(item)} />
+                                ) : (
+                                  <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
+                                )
+                              ))}
                             </div>
-                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              <div style={{ fontSize: 9, color: '#bbb', letterSpacing: '0.05em' }}>{archiveItem.category}</div>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', lineHeight: 1.3 }}>{archiveItem.title}</div>
-                              <div style={{ fontSize: 11, color: '#999' }}>{archiveItem.subtitle}</div>
-                              <div style={{ fontSize: 10, color: '#bbb' }}>{formatDate(archiveItem)}</div>
-                              {archiveItem.memo && <div style={{ fontSize: 10, color: '#777', fontStyle: 'italic' }}>"{archiveItem.memo}"</div>}
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="flex gap-1 mb-4">
-                        {items.map((_, i) => (
-                          <div key={i} onClick={() => setArchiveIdx(i)} className="w-1.5 h-1.5 rounded-full cursor-pointer" style={{ background: i === archiveIdx ? '#1a1a1a' : '#ddd' }} />
-                        ))}
-                      </div>
-
-                      {/* 휠 */}
-                      <div
-                        ref={archiveWheelRef}
-                        style={{ width: 200, height: 200, borderRadius: '50%', background: '#e5e4df', border: '0.5px solid #ccc', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'none' }}
-                        onMouseDown={onArchiveWheelStart} onMouseMove={onArchiveWheelMove} onMouseUp={onArchiveWheelEnd} onMouseLeave={onArchiveWheelEnd}
-                        onTouchStart={onArchiveWheelStart} onTouchMove={onArchiveWheelMove} onTouchEnd={onArchiveWheelEnd}
-                      >
-                        <button onClick={() => setDetailItem(archiveItem)} style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#777', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>DETAIL</button>
-                        <button onClick={() => setArchiveIdx(i => (i - 1 + items.length) % items.length)} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Arial, sans-serif' }}>&#8249;</button>
-                        <button onClick={() => setArchiveIdx(i => (i + 1) % items.length)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Arial, sans-serif' }}>&#8250;</button>
-                        <button onClick={() => setDetailItem(archiveItem)} style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 14, color: '#777', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Arial, sans-serif' }}>&#9654;&#xFE0E;</button>
-                        <div onClick={() => setDetailItem(archiveItem)} style={{ width: 58, height: 58, borderRadius: '50%', background: '#f7f6f3', border: '0.5px solid #ccc', position: 'absolute', zIndex: 2 }} />
-                      </div>
-                    </>
-                  )
-                })()}
-              </>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-        </div>
+          </div>
         )}
       </div>
 
