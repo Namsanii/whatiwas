@@ -27,38 +27,16 @@ type Item = {
   photo_url?: string
 }
 
-type Snapshot = {
-  id: string
-  user_id: string
-  year: number
-  month: number
-  items: Item[]
-}
-
 export default function Home() {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<Item[]>([])
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
-const [creatingSnapshot, setCreatingSnapshot] = useState(false)
-  const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
-  const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
-  const [editPickIds, setEditPickIds] = useState<string[]>([])
-  const [newSnapshotYear, setNewSnapshotYear] = useState(new Date().getFullYear())
-  const [newSnapshotMonth, setNewSnapshotMonth] = useState(new Date().getMonth() + 1)
-  const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
-
-  const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
   const [archiveCategory, setArchiveCategory] = useState<Category>('Books')
   const [showProfile, setShowProfile] = useState(false)
-  const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   const [username, setUsername] = useState('')
   const [editingUsername, setEditingUsername] = useState(false)
   const [usernameInput, setUsernameInput] = useState('')
-  const [tasteText, setTasteText] = useState('')
-  const [editingTaste, setEditingTaste] = useState(false)
-  const [tasteInput, setTasteInput] = useState('')
 
   const [step, setStep] = useState<'idle' | 'select' | 'search' | 'confirm' | 'photo'>('idle')
   const [activeCategory, setActiveCategory] = useState<Category>('Books')
@@ -80,11 +58,8 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const [editingMemo, setEditingMemo] = useState('')
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null)
 
- const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const archiveWheelRef = useRef<HTMLDivElement>(null)
-  const archiveWheelAngle = useRef<number | null>(null)
-  const [archiveIdx, setArchiveIdx] = useState(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -98,7 +73,7 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   }, [])
 
   useEffect(() => {
-    if (session) { fetchItems(); fetchProfile(); fetchSnapshots() }
+    if (session) { fetchItems(); fetchProfile() }
   }, [session])
 
   useEffect(() => {
@@ -113,84 +88,7 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const fetchProfile = async () => {
     if (!session) return
     const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-    if (data) {
-      setUsername(data.username || '')
-      setTasteText(data.taste_text || '')
-    }
-  }
-
-  const fetchSnapshots = async () => {
-    if (!session) return
-    const { data: snapshotData } = await supabase.from('snapshots').select('*').eq('user_id', session.user.id).order('year', { ascending: false })
-    if (!snapshotData) return
-    const { data: allItemsData } = await supabase.from('items').select('*')
-    const allItems = (allItemsData || []) as Item[]
-    const result: Snapshot[] = []
-    for (const s of snapshotData) {
-      const { data: siData } = await supabase.from('snapshot_items').select('item_id').eq('snapshot_id', s.id)
-      const itemIds = siData?.map((si: any) => String(si.item_id)) || []
-      const snapshotItems = allItems.filter(i => itemIds.includes(String(i.id)))
-      result.push({ ...s, items: snapshotItems })
-    }
-    setSnapshots(result)
-  }
-
-  const createSnapshot = async () => {
-    if (!session) return
-    const { data } = await supabase.from('snapshots').insert({ user_id: session.user.id, year: newSnapshotYear, month: newSnapshotMonth }).select()
-    if (!data) return
-    const snapshotId = data[0].id
-    for (const itemId of snapshotPickIds) {
-      await supabase.from('snapshot_items').insert({ snapshot_id: snapshotId, item_id: itemId, user_id: session.user.id })
-    }
-    const newSnapshot: Snapshot = { ...data[0], items: items.filter(i => snapshotPickIds.includes(String(i.id))) }
-    setSnapshots(prev => [newSnapshot, ...prev].sort((a, b) => b.year - a.year || b.month - a.month))
-    setCreatingSnapshot(false)
-    setSnapshotPickIds([])
-  }
-
-  const deleteSnapshot = async (id: string) => {
-    await supabase.from('snapshots').delete().eq('id', id)
-    setSnapshots(prev => prev.filter(s => String(s.id) !== id))
-  }
-
-  const startEditSnapshot = (snapshot: Snapshot) => {
-    setEditingSnapshotId(String(snapshot.id))
-    setEditPickIds(snapshot.items.map(i => String(i.id)))
-  }
-
-  const saveEditSnapshot = async () => {
-    if (!editingSnapshotId) return
-    await supabase.from('snapshot_items').delete().eq('snapshot_id', editingSnapshotId)
-    for (const itemId of editPickIds) {
-      await supabase.from('snapshot_items').insert({ snapshot_id: editingSnapshotId, item_id: itemId, user_id: session.user.id })
-    }
-    const { data: allItemsData } = await supabase.from('items').select('*')
-    const allItems = (allItemsData || []) as Item[]
-    const updatedItems = allItems.filter(i => editPickIds.includes(String(i.id)))
-    setSnapshots(prev => prev.map(s => String(s.id) === editingSnapshotId ? { ...s, items: updatedItems } : s))
-    setEditingSnapshotId(null)
-    setEditPickIds([])
-  }
-
-  const toggleEditPick = (item: Item) => {
-    const id = String(item.id)
-    if (editPickIds.includes(id)) {
-      setEditPickIds(prev => prev.filter(pid => pid !== id))
-    } else {
-      setEditPickIds(prev => [...prev, id])
-    }
-  }
-
-  const toggleSnapshotPick = (item: Item) => {
-    const id = String(item.id)
-    const cat = item.category
-    const currentCat = snapshotPickIds.filter(pid => items.find(i => String(i.id) === pid)?.category === cat)
-    if (snapshotPickIds.includes(id)) {
-      setSnapshotPickIds(prev => prev.filter(pid => pid !== id))
-    } else {
-      setSnapshotPickIds(prev => [...prev, id])
-    }
+    if (data) setUsername(data.username || '')
   }
 
   const saveUsername = async () => {
@@ -198,13 +96,6 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
     await supabase.from('profiles').upsert({ id: session.user.id, username: usernameInput.trim() })
     setUsername(usernameInput.trim())
     setEditingUsername(false)
-  }
-
-  const saveTaste = async () => {
-    if (!session) return
-    await supabase.from('profiles').upsert({ id: session.user.id, taste_text: tasteInput })
-    setTasteText(tasteInput)
-    setEditingTaste(false)
   }
 
   const search = async () => {
@@ -274,34 +165,6 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
     setRecordDate(new Date().toISOString().split('T')[0])
   }
 
-const getArchiveAngle = (e: any, el: HTMLElement) => {
-    const rect = el.getBoundingClientRect()
-    const cx = rect.left + rect.width / 2
-    const cy = rect.top + rect.height / 2
-    const touch = e.touches ? e.touches[0] : e
-    return Math.atan2(touch.clientY - cy, touch.clientX - cx) * 180 / Math.PI
-  }
-
-  const onArchiveWheelStart = (e: any) => {
-    archiveWheelAngle.current = getArchiveAngle(e, archiveWheelRef.current!)
-  }
-
-  const onArchiveWheelMove = (e: any) => {
-    if (archiveWheelAngle.current === null) return
-    const angle = getArchiveAngle(e, archiveWheelRef.current!)
-    let diff = angle - archiveWheelAngle.current
-    if (diff > 180) diff -= 360
-    if (diff < -180) diff += 360
-    if (Math.abs(diff) > 30) {
-      if (diff > 0) setArchiveIdx(i => (i + 1) % items.length)
-      else setArchiveIdx(i => (i - 1 + items.length) % items.length)
-      archiveWheelAngle.current = angle
-    }
-  }
-
-  const onArchiveWheelEnd = () => { archiveWheelAngle.current = null }
-
-  const allYears = [...new Set(items.map(i => new Date(i.created_at).getFullYear()))].sort((a, b) => b - a)
   const formatDate = (item: Item) => {
     const d = new Date(item.created_at)
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
@@ -339,136 +202,6 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
           <div className="text-sm font-medium">{savedFeedback} 기록됐어요</div>
-        </div>
-      )}
-
-      {editingSnapshotId && (
-        <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-6 py-10">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-sm font-medium text-[#1a1a1a]">스냅샷 편집</div>
-              <button onClick={() => { setEditingSnapshotId(null); setEditPickIds([]) }} className="text-xs text-[#999]">취소</button>
-            </div>
-            <div className="text-xs text-[#bbb] mb-6">콘텐츠를 추가하거나 제거해요.</div>
-            {categories.map(cat => {
-              const catItems = items.filter(i => i.category === cat)
-              if (catItems.length === 0) return null
-              const selectedCount = catItems.filter(i => editPickIds.includes(String(i.id))).length
-              return (
-                <div key={cat} className="mb-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="text-xs font-medium text-[#bbb] tracking-wider">{cat.toUpperCase()}</div>
-                    <div className="text-xs text-[#bbb]">{selectedCount}개 선택됨</div>
-                  </div>
-                  <div className="space-y-1">
-                    {catItems.map(item => {
-                      const isPicked = editPickIds.includes(String(item.id))
-                      return (
-                        <div key={item.id} onClick={() => toggleEditPick(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isPicked ? 'opacity-100' : 'opacity-50'}`}>
-                          {item.cover ? <img src={item.cover} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-[#f0efe9] flex-shrink-0" />}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
-                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isPicked ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-[#ddd]'}`}>
-                            {isPicked && <div className="w-2 h-2 rounded-full bg-white"></div>}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-            <button onClick={saveEditSnapshot} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">저장하기</button>
-          </div>
-        </div>
-      )}
-
-      {creatingSnapshot && (
-        <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-6 py-10">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-sm font-medium text-[#1a1a1a]">스냅샷 추가</div>
-              <button onClick={() => { setCreatingSnapshot(false); setSnapshotPickIds([]) }} className="text-xs text-[#999]">취소</button>
-            </div>
-            <div className="text-xs text-[#bbb] mb-6">시기를 선택하고 보여줄 것들을 골라요.</div>
-            <div className="flex gap-3 mb-8">
-              <select className="flex-1 text-sm bg-white rounded-xl border border-[#e5e5e5] px-3 py-2 outline-none" value={newSnapshotYear} onChange={e => setNewSnapshotYear(parseInt(e.target.value))}>
-                {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}년</option>)}
-              </select>
-              <select className="flex-1 text-sm bg-white rounded-xl border border-[#e5e5e5] px-3 py-2 outline-none" value={newSnapshotMonth} onChange={e => setNewSnapshotMonth(parseInt(e.target.value))}>
-                {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
-              </select>
-            </div>
-            {categories.map(cat => {
-              const catItems = items.filter(i => i.category === cat)
-              if (catItems.length === 0) return null
-              const selectedCount = catItems.filter(i => snapshotPickIds.includes(String(i.id))).length
-              return (
-                <div key={cat} className="mb-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="text-xs font-medium text-[#bbb] tracking-wider">{cat.toUpperCase()}</div>
-                    <div className="text-xs text-[#bbb]">{selectedCount}/3</div>
-                  </div>
-                  <div className="space-y-1">
-                    {catItems.map(item => {
-                      const isPicked = snapshotPickIds.includes(String(item.id))
-                      return (
-                        <div key={item.id} onClick={() => toggleSnapshotPick(item)} className={`flex gap-3 items-center py-2 border-b border-[#ebebeb] cursor-pointer ${isPicked ? 'opacity-100' : 'opacity-50'}`}>
-                          {item.cover ? <img src={item.cover} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-[#f0efe9] flex-shrink-0" />}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-[#1a1a1a] truncate">{item.title}</div>
-                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isPicked ? 'bg-[#1a1a1a] border-[#1a1a1a]' : 'border-[#ddd]'}`}>
-                            {isPicked && <div className="w-2 h-2 rounded-full bg-white"></div>}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-            <button onClick={createSnapshot} className="w-full text-sm bg-[#1a1a1a] text-white py-3 rounded-2xl font-medium">저장하기</button>
-          </div>
-        </div>
-      )}
-
-      {selectedYear && (
-        <div className="fixed inset-0 bg-[#f7f6f3] z-50 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-6 py-10 w-full">
-            <div className="flex justify-between items-center mb-8">
-              <div className="text-xl font-medium text-[#1a1a1a]">{selectedYear}</div>
-              <button onClick={() => setSelectedYear(null)} className="text-xs text-[#999]">닫기</button>
-            </div>
-            {categories.map(cat => {
-              const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === selectedYear)
-              if (catItems.length === 0) return null
-              return (
-                <div key={cat} className="mb-10">
-                  <div className="text-xs font-medium text-[#bbb] tracking-wider mb-4">{cat.toUpperCase()}</div>
-                  <div className="space-y-2">
-                    {catItems.map(item => (
-                      <div key={item.id} className="bg-white rounded-2xl border border-[#e5e5e5] overflow-hidden cursor-pointer" onClick={() => { setSelectedYear(null); setDetailItem(item) }}>
-                        {item.photo_url && <img src={item.photo_url} alt="" className="w-full h-40 object-cover" />}
-                        <div className="p-4 flex gap-3 items-start">
-                          {item.cover ? <img src={item.cover} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded bg-[#f0efe9] flex-shrink-0" />}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-[#1a1a1a] truncate">{item.title}</div>
-                            <div className="text-xs text-[#999] truncate">{item.subtitle}</div>
-                            <div className="text-xs text-[#bbb] mt-1">{formatDate(item)}</div>
-                            {item.memo && <div className="text-xs text-[#777] italic mt-1">"{item.memo}"</div>}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
         </div>
       )}
 
@@ -575,168 +308,47 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
       <input ref={photoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelect} />
 
       <div className="max-w-2xl mx-auto px-6 py-10">
-        <div className="mb-6">
+        <div className="mb-8">
           <h1 className="text-xl font-medium tracking-tight text-[#1a1a1a]">whatiwas</h1>
           <p className="text-xs text-[#999] mt-1">A personal archive of taste across the years.</p>
         </div>
 
         <div className="flex gap-0 mb-8 border-b border-[#e5e5e5]">
-          <button onClick={() => setActiveTab('profile')} className={`pb-2 px-1 mr-6 text-sm transition-all ${activeTab === 'profile' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}>Snapshots</button>
-          <button onClick={() => setActiveTab('archive')} className={`pb-2 px-1 text-sm transition-all ${activeTab === 'archive' ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}>Archive</button>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setArchiveCategory(cat)}
+              className={`pb-2 px-1 mr-6 text-sm transition-all ${archiveCategory === cat ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
-        {activeTab === 'profile' && (
-          <div className="space-y-4">
-<div className="space-y-3">
-              {snapshots.map(snapshot => {
-                const allCovers = snapshot.items.map((i: Item) => i.cover).filter(Boolean)
-                const catSet = categories.filter(cat => snapshot.items.some(i => i.category === cat))
-                return (
+        {items.filter(i => i.category === archiveCategory).length === 0 ? (
+          <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            {items
+              .filter(i => i.category === archiveCategory)
+              .map(item => (
+                item.cover ? (
                   <div
-                    key={snapshot.id}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer"
-                    style={{ background: 'white', border: '0.5px solid #e5e5e5', padding: '20px' }}
-                    onClick={() => setExpandedSnapshotId(expandedSnapshotId === String(snapshot.id) ? null : String(snapshot.id))}
+                    key={item.id}
+                    style={{ aspectRatio: archiveCategory === 'Music' ? '1/1' : '2/3', borderRadius: '3px', overflow: 'hidden', cursor: 'pointer' }}
+                    onClick={() => setDetailItem(item)}
                   >
-                    {/* 배경 블러 */}
-                    {allCovers[0] && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        backgroundImage: `url(${allCovers[0]})`,
-                        backgroundSize: 'cover', backgroundPosition: 'center',
-                        opacity: 0.07, filter: 'blur(12px)', borderRadius: '16px'
-                      }} />
-                    )}
-
-                    <div style={{ position: 'relative' }}>
-                      <div className="text-xs text-[#bbb] mb-3" style={{ letterSpacing: '0.04em' }}>
-                        {snapshot.year}년 {snapshot.month}월
-                      </div>
-
-                      {/* 겹쳐진 표지들 */}
-                      <div style={{ position: 'relative', height: '80px', marginBottom: '12px' }}>
-                        {snapshot.items.map((item: Item, idx: number) => {
-                          const isMusic = item.category === 'Music'
-                          const w = isMusic ? 56 : 52
-                          const h = isMusic ? 56 : 74
-                          const rotate = [-6, -2, 3, -4, 2, -3][idx] ?? 0
-                          const translateY = isMusic ? 8 : [4, 2, 0, 4, 2, 0][idx] ?? 0
-                          return (
-                            <div
-                              key={item.id}
-                              style={{
-                                position: 'absolute',
-                                left: idx * 28,
-                                zIndex: idx + 1,
-                                width: w, height: h,
-                                borderRadius: '6px',
-                                overflow: 'hidden',
-                                border: '1.5px solid white',
-                                transform: `rotate(${rotate}deg) translateY(${translateY}px)`,
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                              }}
-                              onClick={e => { e.stopPropagation(); setDetailItem(item) }}
-                            >
-                              {item.cover
-                                ? <img src={item.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                : <div style={{ width: '100%', height: '100%', background: '#f0efe9' }} />
-                              }
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <div className="flex gap-1">
-                          {catSet.map(cat => (
-                            <span key={cat} style={{ fontSize: 10, color: '#bbb', background: '#f7f6f3', border: '0.5px solid #e5e5e5', borderRadius: '4px', padding: '2px 6px' }}>{cat}</span>
-                          ))}
-                        </div>
-                        <span className="text-xs text-[#bbb]">{snapshot.items.length}개</span>
-                      </div>
-
-                      {expandedSnapshotId === String(snapshot.id) && (
-                        <div style={{ marginTop: '16px', borderTop: '0.5px solid #ebebeb', paddingTop: '16px' }}>
-                          <div className="flex flex-col gap-4">
-                            {categories.map(cat => {
-                              const catItems = snapshot.items.filter(i => i.category === cat)
-                              if (catItems.length === 0) return null
-                              return (
-                                <div key={cat}>
-                                  <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                                  <div className="flex gap-2 flex-wrap">
-                                    {catItems.map(item => (
-                                      item.cover ? (
-                                        <img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-16 h-16' : 'w-12 h-16'}`} onClick={e => { e.stopPropagation(); setDetailItem(item) }} />
-                                      ) : (
-                                        <div key={item.id} className="w-16 h-16 rounded bg-[#f0efe9] cursor-pointer" onClick={e => { e.stopPropagation() }} />
-                                      )
-                                    ))}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                          <div className="flex gap-3 mt-4">
-                            <button
-                              onClick={e => { e.stopPropagation(); startEditSnapshot(snapshot) }}
-                              className="text-xs text-[#999]"
-                            >편집</button>
-                            <button
-                              onClick={e => { e.stopPropagation(); deleteSnapshot(String(snapshot.id)) }}
-                              className="text-xs text-[#ccc] hover:text-red-400"
-                            >삭제</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <img src={item.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
+                ) : (
+                  <div
+                    key={item.id}
+                    style={{ aspectRatio: archiveCategory === 'Music' ? '1/1' : '2/3', borderRadius: '3px', background: '#f0efe9', cursor: 'pointer' }}
+                    onClick={() => setDetailItem(item)}
+                  />
                 )
-              })}
-              <button onClick={() => setCreatingSnapshot(true)} className="w-full text-xs text-[#999] py-4 border border-dashed border-[#ddd] rounded-2xl hover:border-[#999] transition-colors">+ 스냅샷 추가</button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'archive' && (
-          <div>
-            <div className="flex gap-0 mb-6 border-b border-[#e5e5e5]">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setArchiveCategory(cat)}
-                  className={`pb-2 px-1 mr-6 text-sm transition-all ${archiveCategory === cat ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            {items.filter(i => i.category === archiveCategory).length === 0 ? (
-              <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                {items
-                  .filter(i => i.category === archiveCategory)
-                  .map(item => (
-                    item.cover ? (
-                      <div
-                        key={item.id}
-                        style={{ aspectRatio: archiveCategory === 'Music' ? '1/1' : '2/3', borderRadius: '3px', overflow: 'hidden', cursor: 'pointer' }}
-                        onClick={() => setDetailItem(item)}
-                      >
-                        <img src={item.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                    ) : (
-                      <div
-                        key={item.id}
-                        style={{ aspectRatio: archiveCategory === 'Music' ? '1/1' : '2/3', borderRadius: '3px', background: '#f0efe9', cursor: 'pointer' }}
-                        onClick={() => setDetailItem(item)}
-                      />
-                    )
-                  ))
-                }
-              </div>
-            )}
+              ))
+            }
           </div>
         )}
       </div>
