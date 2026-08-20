@@ -10,19 +10,18 @@ const supabase = createClient(
 )
 
 const categories = ['Books', 'Music', 'Movies'] as const
+type Category = typeof categories[number]
 
-type Screen = 'categoryList' | 'snapshotList' | 'itemView'
+type Screen = 'categoryList' | 'itemView'
 
 export default function PublicProfile() {
   const params = useParams()
   const [profile, setProfile] = useState<any>(null)
-  const [snapshots, setSnapshots] = useState<any[]>([])
-  const [allItems, setAllItems] = useState<any[]>([])
+  const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const [screen, setScreen] = useState<Screen>('categoryList')
   const [categoryIdx, setCategoryIdx] = useState(0)
-  const [snapshotIdx, setSnapshotIdx] = useState(0)
   const [itemIdx, setItemIdx] = useState(0)
 
   const wheelRef = useRef<HTMLDivElement>(null)
@@ -35,51 +34,27 @@ export default function PublicProfile() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', username).single()
       if (!prof) { setLoading(false); return }
       setProfile(prof)
-
-      const { data: allItemsData } = await supabase.from('items').select('*').eq('user_id', prof.id).order('created_at', { ascending: false })
-      setAllItems(allItemsData || [])
-
-      const { data: snapshotData } = await supabase.from('snapshots').select('*').eq('user_id', prof.id).order('year', { ascending: false })
-
-      const result = []
-      for (const s of (snapshotData || [])) {
-        const { data: siData } = await supabase.from('snapshot_items').select('item_id').eq('snapshot_id', s.id)
-        const itemIds = (siData || []).map((si: any) => Number(si.item_id))
-        const { data: itemsData } = await supabase.from('items').select('*').in('id', itemIds)
-        result.push({ ...s, items: itemsData || [] })
-      }
-      setSnapshots(result)
+      const { data: itemsData } = await supabase.from('items').select('*').eq('user_id', prof.id).order('created_at', { ascending: false })
+      setItems(itemsData || [])
       setLoading(false)
     }
     load()
   }, [])
 
   const currentCategory = categories[categoryIdx]
+  const itemsForCategory = items.filter(i => i.category === currentCategory)
+  const currentItem = itemsForCategory[itemIdx]
 
   useEffect(() => {
     if (screen !== 'categoryList') return
-    const covers = snapshots
-      .flatMap(s => s.items)
-      .filter((i: any) => i.category === currentCategory && i.cover)
-      .map((i: any) => i.cover)
+    const covers = items.filter(i => i.category === currentCategory && i.cover).map(i => i.cover)
     if (covers.length === 0) { setPreviewCover(null); return }
     setPreviewCover(covers[Math.floor(Math.random() * covers.length)])
     const interval = setInterval(() => {
       setPreviewCover(covers[Math.floor(Math.random() * covers.length)])
     }, 2000)
     return () => clearInterval(interval)
-  }, [screen, categoryIdx, snapshots])
-
-  const snapshotsForCategory = snapshots
-    .map(s => ({ ...s, items: s.items.filter((i: any) => i.category === currentCategory) }))
-    .filter(s => s.items.length > 0)
-
-  const allItemsForCategory = allItems.filter((i: any) => i.category === currentCategory)
-
-  const isAllSelected = snapshotIdx === snapshotsForCategory.length
-  const currentSnapshot = isAllSelected ? null : snapshotsForCategory[snapshotIdx]
-  const itemsInSnapshot = isAllSelected ? allItemsForCategory : (currentSnapshot?.items || [])
-  const currentItem = itemsInSnapshot[itemIdx]
+  }, [screen, categoryIdx, items])
 
   const getCoverStyle = (item: any) => {
     if (item.category === 'Music') return { width: 110, height: 110, borderRadius: '6px' }
@@ -88,29 +63,24 @@ export default function PublicProfile() {
 
   const goNext = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i + 1) % categories.length)
-    else if (screen === 'snapshotList') setSnapshotIdx(i => (i + 1) % Math.max(snapshotsForCategory.length + 1, 1))
-    else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsInSnapshot.length, 1))
+    else if (screen === 'itemView') setItemIdx(i => (i + 1) % Math.max(itemsForCategory.length, 1))
   }
+
   const goPrev = () => {
     if (screen === 'categoryList') setCategoryIdx(i => (i - 1 + categories.length) % categories.length)
-    else if (screen === 'snapshotList') setSnapshotIdx(i => (i - 1 + Math.max(snapshotsForCategory.length + 1, 1)) % Math.max(snapshotsForCategory.length + 1, 1))
-    else if (screen === 'itemView') setItemIdx(i => (i - 1 + Math.max(itemsInSnapshot.length, 1)) % Math.max(itemsInSnapshot.length, 1))
+    else if (screen === 'itemView') setItemIdx(i => (i - 1 + Math.max(itemsForCategory.length, 1)) % Math.max(itemsForCategory.length, 1))
   }
 
   const onSelect = () => {
     if (screen === 'categoryList') {
-      if (snapshotsForCategory.length === 0 && allItemsForCategory.length === 0) return
-      setSnapshotIdx(0)
-      setScreen('snapshotList')
-    } else if (screen === 'snapshotList') {
+      if (itemsForCategory.length === 0) return
       setItemIdx(0)
       setScreen('itemView')
     }
   }
 
   const onMenu = () => {
-    if (screen === 'itemView') setScreen('snapshotList')
-    else if (screen === 'snapshotList') setScreen('categoryList')
+    if (screen === 'itemView') setScreen('categoryList')
   }
 
   const getAngle = (e: any, el: HTMLElement) => {
@@ -174,11 +144,11 @@ export default function PublicProfile() {
               <div style={{ display: 'flex', height: '180px' }}>
                 <div className="flex flex-col gap-1" style={{ width: '50%', minWidth: 0, padding: '4px' }}>
                   {categories.map((cat, i) => {
-                    const count = snapshots.reduce((sum, s) => sum + s.items.filter((it: any) => it.category === cat).length, 0)
+                    const count = items.filter(it => it.category === cat).length
                     return (
                       <div
                         key={cat}
-                        onClick={() => { setCategoryIdx(i); if (count > 0) { setSnapshotIdx(0); setScreen('snapshotList') } }}
+                        onClick={() => { setCategoryIdx(i); if (count > 0) { setItemIdx(0); setScreen('itemView') } }}
                         className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${i === categoryIdx ? 'bg-[#1a1a1a]' : ''}`}
                       >
                         <span className={`text-sm ${i === categoryIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{cat}</span>
@@ -190,41 +160,6 @@ export default function PublicProfile() {
                 <div style={{ width: '50%', height: '180px', overflow: 'hidden', flexShrink: 0, background: '#f0efe9' }}>
                   {previewCover && (
                     <img src={previewCover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s' }} />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {screen === 'snapshotList' && (
-              <div className="flex flex-col" style={{ width: '100%' }}>
-                <div style={{ background: 'linear-gradient(180deg, #c4c8d0 0%, #9aa0ab 50%, #b8bcc4 100%)', color: 'white', fontSize: '11px', fontWeight: 500, padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{currentCategory}</span>
-                </div>
-                <div className="flex flex-col gap-1" style={{ padding: '4px' }}>
-                  {snapshotsForCategory.length === 0 && allItemsForCategory.length === 0 ? (
-                    <div className="text-xs text-[#bbb] px-3">항목이 없어요.</div>
-                  ) : (
-                    <>
-                      {snapshotsForCategory.map((s, i) => (
-                        <div
-                          key={s.id}
-                          onClick={() => { setSnapshotIdx(i); setItemIdx(0); setScreen('itemView') }}
-                          className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${i === snapshotIdx ? 'bg-[#1a1a1a]' : ''}`}
-                        >
-                          <span className={`text-sm ${i === snapshotIdx ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>{s.year}년 {s.month}월</span>
-                          <span className={`text-xs ${i === snapshotIdx ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{s.items.length} ›</span>
-                        </div>
-                      ))}
-                      {allItemsForCategory.length > 0 && (
-                        <div
-                          onClick={() => { setSnapshotIdx(snapshotsForCategory.length); setItemIdx(0); setScreen('itemView') }}
-                          className={`flex justify-between items-center px-2 py-1.5 cursor-pointer transition-colors ${snapshotIdx === snapshotsForCategory.length ? 'bg-[#1a1a1a]' : ''}`}
-                        >
-                          <span className={`text-sm ${snapshotIdx === snapshotsForCategory.length ? 'text-white font-medium' : 'text-[#1a1a1a]'}`}>All</span>
-                          <span className={`text-xs ${snapshotIdx === snapshotsForCategory.length ? 'text-[#ccc]' : 'text-[#bbb]'}`}>{allItemsForCategory.length} ›</span>
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
               </div>
@@ -252,9 +187,9 @@ export default function PublicProfile() {
             )}
           </div>
 
-          {screen === 'itemView' && itemsInSnapshot.length > 0 && (
-            <div className="flex gap-1 mb-4" style={{ marginTop: '12px' }}>
-              {itemsInSnapshot.map((_: any, i: number) => (
+          {screen === 'itemView' && itemsForCategory.length > 0 && (
+            <div className="flex gap-1" style={{ marginTop: '12px' }}>
+              {itemsForCategory.map((_: any, i: number) => (
                 <div key={i} onClick={() => setItemIdx(i)} className="w-1.5 h-1.5 rounded-full cursor-pointer transition-colors" style={{ background: i === itemIdx ? '#1a1a1a' : '#ddd' }} />
               ))}
             </div>
@@ -263,7 +198,7 @@ export default function PublicProfile() {
 
           <div
             ref={wheelRef}
-            style={{ width: 200, height: 200, borderRadius: '50%', background: '#e5e4df', border: '0.5px solid #ccc', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'none' }}
+            style={{ width: 200, height: 200, borderRadius: '50%', background: '#e5e4df', border: '0.5px solid #ccc', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'none', marginTop: '12px' }}
             onMouseDown={onWheelStart} onMouseMove={onWheelMove} onMouseUp={onWheelEnd} onMouseLeave={onWheelEnd}
             onTouchStart={onWheelStart} onTouchMove={onWheelMove} onTouchEnd={onWheelEnd}
           >
