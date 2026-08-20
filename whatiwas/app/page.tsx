@@ -49,7 +49,7 @@ const [creatingSnapshot, setCreatingSnapshot] = useState(false)
   const [snapshotPickIds, setSnapshotPickIds] = useState<string[]>([])
 
   const [activeTab, setActiveTab] = useState<'profile' | 'archive'>('profile')
-  const [archiveView, setArchiveView] = useState<'list' | 'grid'>('list')
+  const [archiveCategory, setArchiveCategory] = useState<Category>('Books')
   const [showProfile, setShowProfile] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
@@ -698,37 +698,43 @@ const getArchiveAngle = (e: any, el: HTMLElement) => {
           </div>
         )}
 
-{activeTab === 'archive' && (
+        {activeTab === 'archive' && (
           <div>
-            {items.length === 0 ? (
+            <div className="flex gap-0 mb-6 border-b border-[#e5e5e5]">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setArchiveCategory(cat)}
+                  className={`pb-2 px-1 mr-6 text-sm transition-all ${archiveCategory === cat ? 'text-[#1a1a1a] border-b-2 border-[#1a1a1a] font-medium' : 'text-[#999]'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {items.filter(i => i.category === archiveCategory).length === 0 ? (
               <div className="text-sm text-[#bbb] py-8 text-center">No entries yet.</div>
             ) : (
-              <div className="space-y-8">
-                {allYears.map(y => (
-                  <div key={y}>
-                    <div className="text-sm font-medium text-[#1a1a1a] mb-4">{y}</div>
-                    <div className="space-y-4">
-                      {categories.map(cat => {
-                        const catItems = items.filter(i => i.category === cat && new Date(i.created_at).getFullYear() === y)
-                        if (catItems.length === 0) return null
-                        return (
-                          <div key={cat}>
-                            <div className="text-xs text-[#bbb] mb-2">{cat}</div>
-                            <div className="flex gap-2 flex-wrap">
-                              {catItems.map(item => (
-                                item.cover ? (
-                                  <img key={item.id} src={item.cover} alt="" className={`rounded object-cover cursor-pointer ${item.category === 'Music' ? 'w-20 h-20' : 'w-14 h-20'}`} onClick={() => setDetailItem(item)} />
-                                ) : (
-                                  <div key={item.id} className="w-20 h-20 rounded bg-[#f0efe9] cursor-pointer" onClick={() => setDetailItem(item)} />
-                                )
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                {items
+                  .filter(i => i.category === archiveCategory)
+                  .map(item => (
+                    item.cover ? (
+                      <div
+                        key={item.id}
+                        style={{ aspectRatio: archiveCategory === 'Music' ? '1/1' : '2/3', borderRadius: '3px', overflow: 'hidden', cursor: 'pointer' }}
+                        onClick={() => setDetailItem(item)}
+                      >
+                        <img src={item.cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    ) : (
+                      <div
+                        key={item.id}
+                        style={{ aspectRatio: archiveCategory === 'Music' ? '1/1' : '2/3', borderRadius: '3px', background: '#f0efe9', cursor: 'pointer' }}
+                        onClick={() => setDetailItem(item)}
+                      />
+                    )
+                  ))
+                }
               </div>
             )}
           </div>
